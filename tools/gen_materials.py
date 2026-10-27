@@ -63,18 +63,25 @@ def voronoi(n, cells, seed):
     return f1, f2, cid
 
 
+BIG = {"bark", "planks"}        # seen up close all the time: keep 512 px; the rest ship at 256 px
+
+
 def save(name, albedo, height, strength):
     a = np.clip(albedo, 0, 1)
     if a.ndim == 2:
         a = np.stack([a, a, a], -1)
-    Image.fromarray((a * 255).astype(np.uint8)).save(os.path.join(OUT, name + ".png"))
+    Image.fromarray((a * 255).astype(np.uint8)).save(os.path.join(OUT, name + ".png"), optimize=True)
     # wrap-around gradient keeps the normal map tileable
     gx = (np.roll(height, -1, 1) - np.roll(height, 1, 1)) * 0.5
     gy = (np.roll(height, -1, 0) - np.roll(height, 1, 0)) * 0.5
     nx = -gx * strength; ny = gy * strength; nz = np.ones_like(height)
     l = np.sqrt(nx * nx + ny * ny + nz * nz)
     rgb = np.stack([nx / l, ny / l, nz / l], -1) * 0.5 + 0.5
-    Image.fromarray((rgb * 255).astype(np.uint8)).save(os.path.join(OUT, name + "_n.png"))
+    nimg = Image.fromarray((rgb * 255).astype(np.uint8))
+    size = 512 if name in BIG else 256
+    nimg.resize((size, size), Image.LANCZOS).save(os.path.join(OUT, name + "_n.png"), optimize=True)
+    if size != 512:
+        Image.open(os.path.join(OUT, name + ".png")).resize((size, size), Image.LANCZOS).save(os.path.join(OUT, name + ".png"), optimize=True)
 
 
 def warm(g, tint=(1.0, 0.97, 0.92)):
