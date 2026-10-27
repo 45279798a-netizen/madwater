@@ -62,7 +62,7 @@ const BUILD := [
 	{"id": "helm", "name": "船舵", "desc": "站到船舵旁點它，用 A / D 操控航向", "cost": {"wood": 6, "rope": 2}},
 	{"id": "chest", "name": "儲物箱", "desc": "放在木筏上，背包容量 +12 格", "cost": {"wood": 6, "rope": 2}},
 	{"id": "field", "name": "菜田（每格）", "desc": "一格種 4 株，相鄰的菜田連成一片，要澆淡水", "cost": {"clay": 3, "wood": 2}},
-	{"id": "kelpfarm", "name": "海藻養殖架（每格）", "desc": "一格養 1 條海帶，連成一排一起收，不用淡水", "cost": {"rope": 3, "wood": 2, "plastic": 2}},
+	{"id": "kelpfarm", "name": "海藻養殖架（每格）", "desc": "放在木筏旁邊的海面上，海帶垂進海裡長；一格最多 3 條，連成一排一起收", "cost": {"rope": 3, "wood": 2, "plastic": 2}},
 	{"id": "coop", "name": "雞舍（每格）", "desc": "一格住 2 隻雞，連起來的雞舍共用飼料，2 隻以上會孵小雞", "cost": {"wood": 4, "palm": 3, "rope": 1}},
 	{"id": "pen", "name": "山羊圍欄（每格）", "desc": "一格住 1 隻山羊，2 隻以上有空位會生小羊", "cost": {"wood": 4, "rope": 2}},
 	{"id": "gullnest", "name": "海鷗巢", "desc": "收服的海鷗休息的地方", "cost": {"palm": 4, "wood": 2}},
@@ -71,6 +71,7 @@ const BUILD := [
 	{"id": "catcher", "name": "集雨布", "desc": "下雨時接雨水，最多存 4 杯；要放在沒有屋頂的地方", "cost": {"plastic": 4, "wood": 4, "rope": 2}},
 	{"id": "filter", "name": "陶瓷濾水缸", "desc": "不用柴火，每 30 秒濾出 1 杯淡水，最多存 3 杯", "cost": {"clay": 6, "sand": 4, "wood": 2}},
 ]
+const SEA_KINDS := ["kelpfarm"]   ## built on the water beside the raft, not on the deck
 const OBJ_NAME := {"still": "蒸餾杯", "grill": "烤架", "sail": "船帆", "helm": "船舵", "chest": "儲物箱", "filter": "陶瓷濾水缸", "field": "菜田", "kelpfarm": "海藻養殖架", "coop": "雞舍", "pen": "山羊圍欄", "stairs": "樓梯", "catcher": "集雨布", "gullnest": "海鷗巢", "dolphinpost": "海豚韁繩柱", "turtletank": "海龜水槽",
 	"wall": "牆", "window": "窗牆", "door": "門", "pillar": "支柱", "upper": "二樓地板", "rail": "欄杆", "roof": "屋頂"}
 ## crop: [seed item, grow seconds (prototype speed), harvest item, harvest count]
@@ -126,6 +127,7 @@ var raft_vel := Vector2.ZERO
 var heading := 0.0
 var wind := 0.0
 var tiles := {}
+var sea := {}              ## water cells next to the raft that hold a kelp farm: cell -> tile-like dict
 var objs: Array = []
 var debris: Array = []
 var ghosts: Array = []
@@ -466,6 +468,9 @@ func _reset() -> void:
 		if Farm.is_farm(o.kind):
 			farm.forget(o)
 	objs.clear()
+	for c in sea:
+		sea[c].node.queue_free()
+	sea.clear()
 	if shelter != null:
 		shelter.clear()
 	for d in debris:
@@ -592,6 +597,46 @@ func _remove_tile(t: Dictionary, quiet := false) -> void:
 			P["z"] = best.cell.y * TILE
 
 
+## A raft tile or a sea cell (kelp farm) at c, or null.
+func cell_at(c: Vector2i):
+	if tiles.has(c):
+		return tiles[c]
+	return sea.get(c)
+
+
+## A water cell beside the raft for something that floats (a kelp farm). No deck, no foam mask.
+func _add_sea(c: Vector2i) -> Dictionary:
+	if sea.has(c):
+		return sea[c]
+	var node := Node3D.new()
+	node.position = Vector3(c.x * TILE, 0, c.y * TILE)
+	raft.add_child(node)
+	sea[c] = {"cell": c, "node": node, "obj": null, "hp": 3, "shake": 0.0, "sea": true, "mats": [], "bases": []}
+	return sea[c]
+
+
+func _remove_sea(c: Vector2i) -> void:
+	if sea.has(c):
+		sea[c].node.queue_free()
+		sea.erase(c)
+
+
+## The nearest open water cell next to the raft, from c (Vector2i(9999, 9999) if none).
+func _free_water_near(c: Vector2i) -> Vector2i:
+	var best := Vector2i(9999, 9999)
+	var bd := INF
+	for t in tiles.values():
+		for o in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var w: Vector2i = t.cell + o
+			if tiles.has(w) or sea.has(w):
+				continue
+			var d := Vector2(w - c).length()
+			if d < bd:
+				bd = d
+				best = w
+	return best
+
+
 func _update_mask() -> void:
 	ocean.set_raft_mask(tiles.keys(), raft_pos)
 
@@ -695,8 +740,8 @@ func _place(kind: String, t: Dictionary) -> void:
 		_:
 			m = Models.helm()
 	var node: Node3D = m.node
-	node.position = Vector3(t.cell.x * TILE, 0.07, t.cell.y * TILE)
-	if kind in ["field", "kelpfarm", "coop", "pen", "stairs"]:
+	node.position = Vector3(t.cell.x * TILE, -0.16 if t.get("sea", false) else 0.07, t.cell.y * TILE)
+	if kind in ["field", "coop", "pen", "stairs"]:
 		node.scale = Vector3(Models.K, 1.0, Models.K)    # tile-sized pieces cover the whole tile
 	raft.add_child(node)
 	var o := m.duplicate()
@@ -748,6 +793,8 @@ func _remove_obj(o: Dictionary) -> void:
 	o.node.queue_free()
 	o.tile.obj = null
 	objs.erase(o)
+	if o.tile.get("sea", false):
+		_remove_sea(o.tile.cell)
 
 
 # ---------------------------------------------------------------- debris & hook
@@ -1320,6 +1367,8 @@ func _set_build(mode: String) -> void:
 		if Shelter.is_mode(mode):
 			hud.show_build_bar("點白色的位置蓋%s（每個 %s）%s" % [r.name, _cost_text(r.cost),
 				"，現在蓋在二樓" if int(P["level"]) == 1 else ""])
+		elif mode in SEA_KINDS:
+			hud.show_build_bar("點木筏旁邊的海面一格一格放%s（每格 %s），相鄰的會連成一排" % [OBJ_NAME[mode], _cost_text(r.cost)])
 		elif Farm.is_farm(mode):
 			hud.show_build_bar("點空地板一格一格鋪%s（每格 %s），相鄰的會連成一片" % [OBJ_NAME[mode], _cost_text(r.cost)])
 		else:
@@ -1334,9 +1383,9 @@ func _clear_ghosts() -> void:
 	ghosts.clear()
 
 
-func _add_ghost(c: Vector2i, mat: Material, tall: bool) -> void:
-	var node := Models.part(raft, Models.box(1.5, 1.6, 1.5) if tall else Models.box(1.9, 0.1, 1.9), mat,
-		Vector3(c.x * TILE, 0.85 if tall else 0.12, c.y * TILE))
+func _add_ghost(c: Vector2i, mat: Material, tall: bool, y := 0.12) -> void:
+	var node := Models.part(raft, Models.box(TILE * 0.75, 1.6, TILE * 0.75) if tall else Models.box(TILE - 0.1, 0.1, TILE - 0.1), mat,
+		Vector3(c.x * TILE, 0.85 if tall else y, c.y * TILE))
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	ghosts.append({"node": node, "cell": c})
 
@@ -1357,6 +1406,17 @@ func _refresh_ghosts() -> void:
 				_add_ghost(t.cell, _demo_mat, true)
 			elif tiles.size() > 1:
 				_add_ghost(t.cell, _demo_mat, false)
+		for c in sea:
+			_add_ghost(c, _demo_mat, true)
+	elif build_mode in SEA_KINDS:
+		# open water touching the raft, or touching a kelp line that already touches it
+		var seen := {}
+		for c0 in tiles.keys() + sea.keys():
+			for o in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var c: Vector2i = c0 + o
+				if not tiles.has(c) and not sea.has(c) and not seen.has(c):
+					seen[c] = true
+					_add_ghost(c, _ghost_mat, false, -0.2)
 	elif Shelter.is_mode(build_mode):
 		shelter.show_ghosts(build_mode, P["level"], _ghost_mat)
 	elif build_mode == "stairs":
@@ -1378,7 +1438,7 @@ func _refund_half(cost: Dictionary) -> String:
 
 func _tap_ghost(c: Vector2i) -> void:
 	if build_mode == "demolish":
-		var t: Dictionary = tiles[c]
+		var t: Dictionary = tiles[c] if tiles.has(c) else sea[c]
 		if t.obj != null:
 			var kind: String = t.obj.kind
 			var pets: Dictionary = farm.animals_on(t.obj) if Farm.is_farm(kind) else {}
@@ -1417,7 +1477,7 @@ func _tap_ghost(c: Vector2i) -> void:
 		hud.toast("蓋好 1 格地板")
 		_refresh_ghosts()
 	else:
-		_place(build_mode, tiles[c])
+		_place(build_mode, tiles[c] if not build_mode in SEA_KINDS else _add_sea(c))
 		match build_mode:
 			"still":
 				S["still_built"] += 1
@@ -1442,10 +1502,11 @@ func _tap_ghost(c: Vector2i) -> void:
 		if Farm.is_farm(build_mode):
 			var n := 0
 			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var nb = tiles.get(c + d)
+				var nb = cell_at(c + d)
 				if nb != null and nb.obj != null and nb.obj.kind == build_mode:
 					n += 1
-			hud.toast("%s +1 格%s，繼續點空地板擴大，按完成結束" % [OBJ_NAME[build_mode], "，跟旁邊的連成一片" if n > 0 else ""])
+			hud.toast("%s +1 格%s，繼續點%s擴大，按完成結束" % [OBJ_NAME[build_mode], "，跟旁邊的連成一片" if n > 0 else "",
+				"旁邊的海面" if build_mode in SEA_KINDS else "空地板"])
 			_refresh_ghosts()
 		else:
 			_set_build("")
@@ -1563,7 +1624,7 @@ func _pick(screen: Vector2) -> Dictionary:
 		if not piece.is_empty():
 			return {"kind": "shelter_piece", "ref": piece}
 	if build_mode != "" and absf(d.y) > 0.0001:
-		var tt := (raft.global_position.y + 0.1 - o.y) / d.y
+		var tt := (raft.global_position.y + (-0.2 if build_mode in SEA_KINDS else 0.1) - o.y) / d.y
 		if tt > 0.0:
 			var hp := raft.to_local(o + d * tt)
 			var cell := Vector2i(roundi(hp.x / TILE), roundi(hp.z / TILE))
@@ -2228,7 +2289,7 @@ func _process(delta: float) -> void:
 	wall_t += dt
 	ocean.t = wall_t
 	var c := _raft_center()
-	ocean.calm = Vector3(c.x, c.z, c.r)
+	ocean.calm = Vector3(c.x, c.z, c.r + (TILE if not sea.is_empty() else 0.0))   # kelp lines ride the calm water too
 
 	# raft rides the swell and tilts with its slope
 	var sx := (ocean.height(c.x + 1.5, c.z) - ocean.height(c.x - 1.5, c.z)) / 3.0
@@ -3005,9 +3066,19 @@ func _load_game() -> bool:
 		_tint(tiles[c])
 	for e in data.objs:
 		var c := Vector2i(int(e.x), int(e.y))
+		var kind: String = "field" if e.kind == "planter" else str(e.kind)
+		if kind in SEA_KINDS:
+			if tiles.has(c):
+				c = _free_water_near(c)   # older saves kept kelp farms on the deck: float them alongside
+				if c == Vector2i(9999, 9999):
+					continue
+			if sea.has(c):
+				continue
+			_place(kind, _add_sea(c))
+			_apply_obj(sea[c].obj, e)
+			continue
 		if not tiles.has(c):
 			continue
-		var kind: String = "field" if e.kind == "planter" else str(e.kind)
 		_place(kind, tiles[c])
 		_apply_obj(tiles[c].obj, e)
 	raft_pos = Vector2(float(data.raft[0]), float(data.raft[1]))
@@ -3391,21 +3462,22 @@ func apply_entities(e: Dictionary, full: bool) -> void:
 		if not str(k).begins_with("o:"):
 			continue
 		var c := _key_cell(k)
-		var cur = tiles[c].obj if tiles.has(c) else null
+		var cell = cell_at(c)
+		var cur = cell.obj if cell != null else null
 		if e[k] == null or typeof(e[k]) != TYPE_DICTIONARY:
 			if cur != null:
 				_remove_obj(cur)
 			continue
 		keep_o[c] = true
 		var kind := str(e[k].get("kind", ""))
-		if not tiles.has(c) or not OBJ_NAME.has(kind):
+		if not OBJ_NAME.has(kind) or (not tiles.has(c) and not kind in SEA_KINDS) or (tiles.has(c) and kind in SEA_KINDS):
 			continue
 		if cur != null and cur.kind != kind:
 			_remove_obj(cur)
 			cur = null
 		if cur == null:
-			_place(kind, tiles[c])
-			cur = tiles[c].obj
+			_place(kind, _add_sea(c) if kind in SEA_KINDS else tiles[c])
+			cur = cell_at(c).obj
 		_apply_obj(cur, e[k])
 	if full:
 		for o in objs.duplicate():

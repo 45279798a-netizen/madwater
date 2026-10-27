@@ -494,19 +494,55 @@ static func field_tile() -> Dictionary:
 	return {"node": g}
 
 
+## Kelp farm: a frame floating on the sea beside the raft (one water cell), ropes across it,
+## orange buoys at the corners; kelp hangs from the ropes down into the water and grows longer.
+## The node sits at the water line. Built at full TILE size (not stretched like deck pieces).
 static func kelp_tile() -> Dictionary:
 	var g := Node3D.new()
-	var rope := mat(Color("cdb68a"))
-	for z in [-0.45, 0.0, 0.45]:
-		part(g, cyl(0.018, 0.018, 1.9, 4), rope, Vector3(0, 0.14, z), Vector3(0, 0, PI / 2))
+	var h := TILE * 0.5 - 0.12
+	var wood: StandardMaterial3D = shared("kelp_wood", func(): return mat(Color("8a6a40"), 0.9))
+	var rope: StandardMaterial3D = shared("kelp_rope", func(): return mat(Color("d8c49a"), 0.95))
+	var buoy: StandardMaterial3D = shared("kelp_buoy", func(): return mat(Color("ff8a1c"), 0.5))
+	var band: StandardMaterial3D = shared("kelp_band", func(): return mat(Color("f4ecd6"), 0.6))
+	# bamboo-like frame: two long floats and two cross bars
+	for z in [-h, h]:
+		part(g, cyl(0.09, 0.09, TILE - 0.1, 8), wood, Vector3(0, 0.02, z), Vector3(0, 0, PI / 2))
+	for x in [-h, h]:
+		part(g, cyl(0.07, 0.07, TILE - 0.3, 8), wood, Vector3(x, 0.05, 0), Vector3(PI / 2, 0, 0))
+	for x in [-h, h]:
+		for z in [-h, h]:
+			part(g, sphere(0.27, 12), buoy, Vector3(x, 0.1, z), Vector3.ZERO, Vector3(1, 0.85, 1))
+			part(g, cyl(0.275, 0.275, 0.06, 12), band, Vector3(x, 0.1, z))
+	# grow lines across the frame
+	var lines := [-0.55, 0.0, 0.55]
+	for lx in lines:
+		part(g, cyl(0.02, 0.02, TILE - 0.3, 5), rope, Vector3(lx * TILE / 2.0, 0.07, 0), Vector3(PI / 2, 0, 0))
 	var kelp := Node3D.new()
 	kelp.name = "Kelp"
 	g.add_child(kelp)
-	var km := mat(Color("5a7a2c"), 0.8)
-	km.cull_mode = BaseMaterial3D.CULL_DISABLED
-	for i in 9:
-		part(kelp, box(0.14, 0.9, 0.02), km, Vector3(-0.7 + (i % 3) * 0.7, -0.35, -0.45 + floorf(i / 3.0) * 0.45), Vector3(0, i * 0.6, 0.1))
+	var km: StandardMaterial3D = shared("kelp_leaf", func():
+		var m := mat(Color("6b8a2c"), 0.7)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		return m)
+	var km2: StandardMaterial3D = shared("kelp_leaf2", func():
+		var m := mat(Color("4f6e22"), 0.7)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		return m)
+	# blades hang from the lines: tops at the surface, the node's y scale makes them longer
+	for i in 12:
+		var lx: float = lines[i % 3] * TILE / 2.0
+		var z := -h + 0.35 + (floorf(i / 3.0)) * (2.0 * h - 0.7) / 3.0
+		var blade := part(kelp, box(0.16, 1.0, 0.02), km if i % 2 == 0 else km2, Vector3(lx + 0.05 * sin(i * 1.7), -0.5, z), Vector3(0.08 * cos(i), i * 0.7, 0.12 * sin(i * 2.3)))
+		blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	kelp.visible = false
+	# fronds floating at the surface show from the deck how far along it is
+	var tips := Node3D.new()
+	tips.name = "Tips"
+	g.add_child(tips)
+	for i in 9:
+		var lx: float = lines[i % 3] * TILE / 2.0
+		part(tips, box(0.28, 0.015, 0.1), km, Vector3(lx + 0.12, 0.09, -h + 0.5 + floorf(i / 3.0) * (2.0 * h - 1.0) / 2.0), Vector3(0, i * 1.1, 0))
+	tips.visible = false
 	_edges_node(g)
 	return {"node": g}
 
@@ -557,6 +593,8 @@ static func farm_edges(tile_node: Node3D, kind: String, open: Array) -> void:
 	for c in e.get_children():
 		e.remove_child(c)
 		c.queue_free()
+	if kind == "kelpfarm":
+		return   # the floating frame has its own edges
 	var wood: StandardMaterial3D = shared("farm_wood", func(): return mat(Color("7a5232")))
 	var dirs := [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]
 	for i in 4:

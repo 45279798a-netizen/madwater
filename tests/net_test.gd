@@ -88,6 +88,12 @@ func _ready() -> void:
 	_ok(await _wait_for(func(): return int(host.tiles[Vector2i(-1, 0)].obj.water) == 0, 2.0), "friend took the water (host sees it)")
 	_ok(cli.inv.get("wood", 0) == 2, "friend has their own backpack")
 
+	host._place("kelpfarm", host._add_sea(Vector2i(3, 0)))
+	_ok(await _wait_for(func(): return cli.sea.has(Vector2i(3, 0)) and cli.sea[Vector2i(3, 0)].obj != null, 2.0), "host's kelp farm floats beside the friend's raft too")
+	cli.sea[Vector2i(3, 0)].obj.planted = true
+	cli.net.flush()
+	_ok(await _wait_for(func(): return host.sea[Vector2i(3, 0)].obj.planted, 2.0), "friend planted the kelp (host sees it)")
+
 	print("shelter")
 	var key := ""
 	for c in host.tiles:

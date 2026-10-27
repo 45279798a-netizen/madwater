@@ -75,7 +75,7 @@ func setup(o: Dictionary) -> void:
 # ---------------------------------------------------------------- groups
 
 func _same(o: Dictionary, c: Vector2i) -> bool:
-	var t = g.tiles.get(c)
+	var t = g.cell_at(c)
 	return t != null and t.obj != null and t.obj.kind == o.kind
 
 
@@ -99,7 +99,7 @@ func _rebuild() -> void:
 				var c: Vector2i = a.tile.cell + d
 				if _same(o, c) and not seen.has(c):
 					seen[c] = true
-					stack.append(g.tiles[c].obj)
+					stack.append(g.cell_at(c).obj)
 		members.sort_custom(func(a, b): return a.tile.cell.y < b.tile.cell.y or (a.tile.cell.y == b.tile.cell.y and a.tile.cell.x < b.tile.cell.x))
 		var grp := {"kind": o.kind, "objs": members, "leader": members[0]}
 		var gi := groups.size()
@@ -123,7 +123,8 @@ func _rebuild() -> void:
 			a.label.visible = a == lead
 		centre /= members.size()
 		var off: Vector2 = (centre - Vector2(lead.tile.cell)) * g.TILE
-		lead.label.position = Vector3(off.x / Models.K, 1.35, off.y / Models.K)   # the tile node is stretched by K
+		var sc: Vector3 = (lead.node as Node3D).scale
+		lead.label.position = Vector3(off.x / sc.x, 1.35, off.y / sc.z)   # deck farm nodes are stretched by K
 		if o.kind == "coop":
 			var h := Models.hen_house()
 			h.scale = Vector3(1.0 / Models.K, 1.0, 1.0 / Models.K)
@@ -223,8 +224,13 @@ func _sim_kelp(grp: Dictionary, dt: float) -> void:
 				a.kelp += 1
 		var strips: Node3D = a.node.get_node("Kelp")
 		strips.visible = a.planted
+		var tips: Node3D = a.node.get_node("Tips")
+		tips.visible = a.planted
 		if a.planted:
-			strips.scale = Vector3(1, 0.4 + 0.2 * a.kelp + 0.2 * a.prog / KELP_SEC, 1)
+			var k: float = (a.kelp + a.prog / KELP_SEC) / float(KELP_PER_TILE)
+			strips.scale = Vector3(1, 0.35 + 1.6 * k, 1)
+			for i in tips.get_child_count():
+				tips.get_child(i).visible = i < 3 + int(6.0 * k)
 
 
 func _sim_coop(grp: Dictionary, dt: float) -> void:

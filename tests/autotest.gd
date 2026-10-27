@@ -238,7 +238,10 @@ func _process(_d: float) -> void:
 			check("farm build mode stays on for painting", game.build_mode == "field")
 			game._set_build("coop"); game._tap_ghost(Vector2i(0, 1)); game._tap_ghost(Vector2i(1, 1))
 			game._set_build("pen"); game._tap_ghost(Vector2i(-1, 0)); game._tap_ghost(Vector2i(-1, 1))
-			game._set_build("kelpfarm"); game._tap_ghost(Vector2i(2, 0)); game._tap_ghost(Vector2i(2, 1))
+			game._set_build("kelpfarm")
+			check("kelp farm goes on the water, not the deck", game.ghosts.all(func(gh): return not game.tiles.has(gh.cell)) and not game.ghosts.is_empty())
+			game._tap_ghost(Vector2i(3, 0)); game._tap_ghost(Vector2i(3, 1))
+			check("kelp farm floats beside the raft", game.sea.has(Vector2i(3, 0)) and game.sea[Vector2i(3, 0)].obj.kind == "kelpfarm" and not game.tiles.has(Vector2i(3, 0)))
 			game._set_build("")
 			var fl = game.tiles[Vector2i(0, 0)].obj
 			check("8 farm tiles placed", game._objs_of("field").size() == 2 and game._objs_of("coop").size() == 2 and game._objs_of("pen").size() == 2 and game._objs_of("kelpfarm").size() == 2)
@@ -277,11 +280,13 @@ func _process(_d: float) -> void:
 			var pl = game.farm.group_of(pn).leader
 			check("2 goats, fed and watered", game.farm._sum(game.farm.group_of(pn), "goats") == 2 and pl.food == 2 and pl.water == 4)
 			pl.prog = game.farm.MILK_SEC - 0.01
-			# kelp line
-			var kf = game.tiles[Vector2i(2, 0)].obj
+			# kelp line (stand at the deck edge next to it)
+			game.P["x"] = 2.0 * game.TILE; game.P["z"] = 0.0
+			var kf = game.sea[Vector2i(3, 0)].obj
 			game.inv["kelp"] = 2
 			game.farm.tap(kf, pw())
 			check("kelp seeded on both tiles", game._objs_of("kelpfarm").all(func(o): return o.planted) and game.inv["kelp"] == 0)
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 			for o in game._objs_of("kelpfarm"):
 				o.prog = 59.99
 		900:
@@ -304,9 +309,11 @@ func _process(_d: float) -> void:
 			game.inv["milk"] = 1
 			game._drink()
 			check("drank milk", game.inv["milk"] == 0 and game.S["thirst"] == 70.0 and game.S["hunger"] == 65.0)
-			var kf = game.tiles[Vector2i(2, 0)].obj
+			game.P["x"] = 2.0 * game.TILE; game.P["z"] = 0.0
+			var kf = game.sea[Vector2i(3, 0)].obj
 			game.farm.tap(kf, pw())
 			check("kelp harvested from the whole line", game.inv["kelp"] == 2)
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 			# the shark bites off a coop tile: its 2 hens float away, the rest of the coop keeps the feed
 			var nd: int = game.debris.size()
 			var food: int = grp.leader.food

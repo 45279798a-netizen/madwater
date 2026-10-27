@@ -36,7 +36,7 @@ func _process(_d: float) -> void:
 		_paint("field", [Vector2i(-2, -1), Vector2i(-1, -1), Vector2i(0, -1), Vector2i(-2, 0), Vector2i(-1, 0), Vector2i(0, 0)])
 		_paint("coop", [Vector2i(1, -1), Vector2i(2, -1), Vector2i(1, 0), Vector2i(2, 0)])
 		_paint("pen", [Vector2i(-2, 2), Vector2i(-1, 2)])
-		_paint("kelpfarm", [Vector2i(0, 2), Vector2i(1, 2), Vector2i(2, 2)])
+		_paint("kelpfarm", [Vector2i(0, 3), Vector2i(1, 3), Vector2i(2, 3)])
 		_paint("still", [Vector2i(2, 1)])
 		game._set_build("")
 		var crops := ["potato", "potato", "tomato", "tomato", "melon", "melon"]
@@ -58,13 +58,23 @@ func _process(_d: float) -> void:
 		game.farm.group_of(pn).leader.food = 3
 		game.farm.group_of(pn).leader.water = 3
 		for o in game._objs_of("kelpfarm"):
-			o.planted = true; o.kelp = 2
+			o.planted = true; o.kelp = 2; o.prog = 30.0
 		game.P["x"] = 0.0; game.P["z"] = 1.0
 		game.cam_pitch = 0.85; game.cam_dist = 14.0; game.cam_yaw = 0.25
 	if f == 160:
 		game.hud.toast_label.visible = false
 		get_viewport().get_texture().get_image().save_png(out + "/farm_raft.png")
-		game._on_action("build")
-	if f == 175:
-		get_viewport().get_texture().get_image().save_png(out + "/farm_build.png")
+		game.P["x"] = 1.0 * game.TILE; game.P["z"] = 2.0 * game.TILE
+		game.cam_pitch = 0.42; game.cam_dist = 7.5; game.cam_yaw = PI + 0.5
+	if f == 220:
+		game.hud.toast_label.visible = false
+		get_viewport().get_texture().get_image().save_png(out + "/kelp_deck.png")
+		game._toggle_swim()
+		var w: Vector3 = game.raft.to_global(Vector3(1.0 * game.TILE, 0, 3.0 * game.TILE))
+		game.swim.pos = Vector3(w.x - 3.5, game.ocean.height(w.x, w.z) - 2.6, w.z + 1.0)
+		game.swim.under = true
+		game.cam_pitch = 0.05; game.cam_dist = 4.0; game.cam_yaw = -PI / 2.0 - 0.3
+	if f == 300:
+		game.hud.toast_label.visible = false
+		get_viewport().get_texture().get_image().save_png(out + "/kelp_under.png")
 		get_tree().quit()
