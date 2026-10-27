@@ -4,10 +4,10 @@ extends Node3D
 ## Controls: WASD move (A/D steer at the helm) · drag mouse to orbit · wheel zoom · left click to interact
 ##           E eat · Q drink · R reel in · C craft · B build · Esc close · K shark on/off (creative)
 
-const TILE := 2.0
+const TILE := Models.TILE
 const HOOK_RANGE := 14.0
 const FISH_RANGE := 9.0
-const REACH := 4.5
+const REACH := 6.0          ## about two raft tiles
 const SPEAR_REACH := 6.5
 const DAY_LEN := 240.0
 const THIRST_SEC := 240.0
@@ -145,7 +145,7 @@ var uw_overlay: ColorRect
 var wreck_node: Dictionary = {}
 var cam_yaw := 0.7
 var cam_pitch := 0.55
-var cam_dist := 11.0
+var cam_dist := 7.5
 var cam_target := Vector3(1, 1, 1)
 
 var paused := true
@@ -492,7 +492,7 @@ func _reset() -> void:
 	heading = ocean.wind
 	for c in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
 		_add_tile(c)
-	P = {"x": 1.0, "z": 1.0, "face": 0.0, "moving": false, "level": 0}
+	P = {"x": TILE * 0.5, "z": TILE * 0.5, "face": 0.0, "moving": false, "level": 0}
 	shark = {"x": 1.0, "z": 16.0, "head": 0.0, "state": "circle", "timer": 80.0, "ang": PI / 2,
 		"hp": 3, "bite": 0.0, "target": null, "flash": 0.0, "warned": false, "rip_t": 0.0, "dep": 0.42, "hpitch": 0.0, "hunt_t": 9.0,
 		"side": Vector2.RIGHT, "lunge": false, "jaw": 0.0, "pitch": 0.0, "tpeer": ""}
@@ -696,6 +696,8 @@ func _place(kind: String, t: Dictionary) -> void:
 			m = Models.helm()
 	var node: Node3D = m.node
 	node.position = Vector3(t.cell.x * TILE, 0.07, t.cell.y * TILE)
+	if kind in ["field", "kelpfarm", "coop", "pen", "stairs"]:
+		node.scale = Vector3(Models.K, 1.0, Models.K)    # tile-sized pieces cover the whole tile
 	raft.add_child(node)
 	var o := m.duplicate()
 	o["kind"] = kind
@@ -724,6 +726,8 @@ func _place(kind: String, t: Dictionary) -> void:
 
 func _label3d(parent: Node3D) -> Label3D:
 	var label := Label3D.new()
+	if absf(parent.scale.x - 1.0) > 0.01:
+		label.scale = Vector3(1.0 / parent.scale.x, 1.0, 1.0 / parent.scale.z)   # keep text unstretched
 	label.font = _font
 	label.font_size = 44
 	label.pixel_size = 0.004
@@ -1467,7 +1471,7 @@ func _unhandled_input(e: InputEvent) -> void:
 					_tap(mb.position)
 				_drag = {}
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			cam_dist = maxf(5.0, cam_dist - 0.8)
+			cam_dist = maxf(3.5, cam_dist - 0.8)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			cam_dist = minf(20.0, cam_dist + 0.8)
 	elif e is InputEventMouseMotion and not _drag.is_empty():
@@ -1544,7 +1548,7 @@ func _touch_input(e: InputEvent) -> void:
 			var ks := _touches.keys()
 			var d: float = (_touches[ks[0]].pos as Vector2).distance_to(_touches[ks[1]].pos)
 			if _pinch > 0.0:
-				cam_dist = clampf(cam_dist * _pinch / maxf(d, 1.0), 5.0, 20.0)
+				cam_dist = clampf(cam_dist * _pinch / maxf(d, 1.0), 3.5, 20.0)
 			_pinch = d
 
 

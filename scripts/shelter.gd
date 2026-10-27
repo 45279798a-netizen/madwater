@@ -199,7 +199,7 @@ func show_ghosts(mode: String, level: int, mat: Material) -> void:
 					var at := edge_pos(k)
 					var along_z := _parse(k)[0] == "x"
 					var hgt := 0.9 if mode == "rail" else H - 0.14
-					var n := Models.part(g.raft, Models.box(0.14 if along_z else 1.9, hgt, 1.9 if along_z else 0.14), mat, at + Vector3(0, hgt / 2.0, 0))
+					var n := Models.part(g.raft, Models.box(0.14 if along_z else g.TILE - 0.1, hgt, g.TILE - 0.1 if along_z else 0.14), mat, at + Vector3(0, hgt / 2.0, 0))
 					ghosts.append({"node": n, "key": k, "at": at})
 		"pillar":
 			var seen := {}
@@ -216,14 +216,14 @@ func show_ghosts(mode: String, level: int, mat: Material) -> void:
 			for c in g.tiles:
 				if upper_ok(c):
 					var at := Vector3(c.x * g.TILE, FLOOR_Y[1] - 0.06, c.y * g.TILE)
-					var n := Models.part(g.raft, Models.box(1.9, 0.12, 1.9), mat, at)
+					var n := Models.part(g.raft, Models.box(g.TILE - 0.1, 0.12, g.TILE - 0.1), mat, at)
 					ghosts.append({"node": n, "key": "%d|%d" % [c.x, c.y], "at": at})
 		"roof":
 			var cells: Array = g.tiles.keys() if level == 0 else uppers.keys()
 			for c in cells:
 				if roof_ok(c, level):
 					var at := Vector3(c.x * g.TILE, FLOOR_Y[level] + H - 0.1, c.y * g.TILE)
-					var n := Models.part(g.raft, Models.box(1.9, 0.2, 1.9), mat, at)
+					var n := Models.part(g.raft, Models.box(g.TILE - 0.1, 0.2, g.TILE - 0.1), mat, at)
 					ghosts.append({"node": n, "key": "%d|%d|%d" % [c.x, c.y, level], "at": at})
 	for gh in ghosts:
 		(gh.node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -276,6 +276,7 @@ func place(mode: String, key: String) -> bool:
 
 func _add_edge(key: String, kind: String) -> void:
 	var n := Models.wall_piece(kind)
+	n.scale = Vector3(Models.K, 1.0, 1.0)    # drawn 2 m wide: stretch along the edge
 	n.position = edge_pos(key)
 	if _parse(key)[0] == "x":
 		n.rotation.y = PI / 2.0
@@ -292,6 +293,7 @@ func _add_post(key: String) -> void:
 
 func _add_upper(c: Vector2i) -> void:
 	var n := Models.upper_floor()
+	n.scale = Vector3(Models.K, 1.0, Models.K)
 	n.position = Vector3(c.x * g.TILE, FLOOR_Y[1], c.y * g.TILE)
 	g.raft.add_child(n)
 	uppers[c] = n
@@ -301,6 +303,7 @@ func _add_roof(key: String) -> void:
 	var p := _parse(key)
 	var lv := int(p[2])
 	var n := Models.roof_tile()
+	n.scale = Vector3(Models.K, 1.0, Models.K)
 	n.position = Vector3(int(p[0]) * g.TILE, FLOOR_Y[lv] + H - 0.12, int(p[1]) * g.TILE)
 	g.raft.add_child(n)
 	roofs[key] = n

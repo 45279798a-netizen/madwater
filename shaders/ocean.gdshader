@@ -17,6 +17,7 @@ uniform vec3 deep_color : source_color = vec3(0.012, 0.11, 0.2);
 uniform vec3 scatter_color : source_color = vec3(0.05, 0.42, 0.47);
 uniform sampler2D raft_mask : filter_linear, repeat_disable;
 uniform vec2 raft_off = vec2(0.0);
+uniform float raft_cell = 3.0;   // metres per raft tile (main.gd TILE)
 uniform vec4 rip[8];              // x, z, start time, strength
 
 varying vec3 w_pos;
@@ -108,7 +109,7 @@ void fragment() {
 	float fn = noise(p * 1.3 + vec2(t * 0.25, t * 0.08)) * 0.65 + noise(p * 4.2 - t * 0.3) * 0.35;
 	float jf = smoothstep(0.8, 0.35, v_j);
 	float crest_foam = jf * smoothstep(0.3, 0.7, fn + jf * 0.25);
-	float m = texture(raft_mask, ((p - raft_off) * 0.5 + 16.5) / 32.0).r;
+	float m = texture(raft_mask, ((p - raft_off) / raft_cell + 16.5) / 32.0).r;
 	float edge = smoothstep(0.24, 0.4, m) * (1.0 - smoothstep(0.46, 0.52, m));
 	float raft_foam = edge * smoothstep(0.45, 0.8, fn + 0.15 * sin(t * 2.0 + p.x * 1.3 + p.y));
 	float foam = max(max(crest_foam * 0.8, raft_foam * 0.6), min(rip_foam, 1.0) * 0.6);

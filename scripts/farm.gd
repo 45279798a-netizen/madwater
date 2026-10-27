@@ -44,7 +44,7 @@ func setup(o: Dictionary) -> void:
 			for i in 4:
 				var pn := Node3D.new()
 				pn.position = Vector3(SPOTS[i].x, 0.2, SPOTS[i].y)
-				pn.scale = Vector3.ONE * 0.8
+				pn.scale = Vector3(0.8 / Models.K, 0.8, 0.8 / Models.K)   # plants keep their shape on the stretched tile
 				o.node.add_child(pn)
 				o.spots.append({"crop": "", "grow": 0.0, "dead": false, "shown": "", "node": pn})
 			o["moist"] = 0.0
@@ -123,9 +123,10 @@ func _rebuild() -> void:
 			a.label.visible = a == lead
 		centre /= members.size()
 		var off: Vector2 = (centre - Vector2(lead.tile.cell)) * g.TILE
-		lead.label.position = Vector3(off.x, 1.35, off.y)
+		lead.label.position = Vector3(off.x / Models.K, 1.35, off.y / Models.K)   # the tile node is stretched by K
 		if o.kind == "coop":
 			var h := Models.hen_house()
+			h.scale = Vector3(1.0 / Models.K, 1.0, 1.0 / Models.K)
 			lead.node.add_child(h)
 			_houses.append(h)
 
@@ -312,7 +313,7 @@ func _sync_beasts(a: Dictionary, grp: Dictionary, dt: float) -> void:
 		if a.kind == "pen":
 			node.scale = Vector3.ONE * 0.75
 		g.raft.add_child(node)
-		var p: Vector2 = Vector2(a.tile.cell) * g.TILE + Vector2(randf_range(-0.5, 0.5), randf_range(-0.5, 0.5))
+		var p: Vector2 = Vector2(a.tile.cell) * g.TILE + Vector2(randf_range(-0.5, 0.5), randf_range(-0.5, 0.5)) * Models.K
 		a.beasts.append({"node": node, "pos": p, "target": p, "wait": randf_range(0.0, 2.0)})
 	while a.beasts.size() > want:
 		a.beasts.pop_back().node.queue_free()
@@ -323,7 +324,7 @@ func _sync_beasts(a: Dictionary, grp: Dictionary, dt: float) -> void:
 			b.wait -= dt
 			if b.wait <= 0.0:
 				var pick: Dictionary = grp.objs[randi() % grp.objs.size()]
-				b.target = Vector2(pick.tile.cell) * g.TILE + Vector2(randf_range(-0.65, 0.65), randf_range(-0.65, 0.65))
+				b.target = Vector2(pick.tile.cell) * g.TILE + Vector2(randf_range(-0.65, 0.65), randf_range(-0.65, 0.65)) * Models.K
 		elif to.length() < 0.05:
 			b.wait = randf_range(1.0, 4.0)
 		else:

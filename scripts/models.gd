@@ -4,6 +4,10 @@ class_name Models
 const BARK := [Color("8a5a34"), Color("7d5230"), Color("936239"), Color("845632"), Color("7a4e2c")]
 
 static var _cache := {}
+## One raft tile is TILE metres square. Pieces drawn for the old 2 m tile are stretched by K
+## across the deck (never upward); the raft logs themselves are laid out for the real size.
+const TILE := 3.0
+const K := TILE / 2.0
 
 
 static func mat(c: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
@@ -81,23 +85,25 @@ static func shared(key: String, maker: Callable) -> Variant:
 
 ## One 2 m raft cell: five lashed logs on two cross beams. Returns the bark materials for damage tint.
 static func raft_tile(parent: Node3D, i: int, j: int) -> Array:
-	var log_a: Mesh = shared("log_a", func(): return cyl(0.2, 0.2, 1.98, 10))
-	var log_b: Mesh = shared("log_b", func(): return cyl(0.185, 0.19, 1.94, 10))
-	var beam: Mesh = shared("beam", func(): return cyl(0.09, 0.09, 2.04, 7))
-	var rope: Mesh = shared("rope", func(): return box(2.0, 0.035, 0.07))
+	var log_a: Mesh = shared("log_a", func(): return cyl(0.21, 0.21, TILE - 0.02, 10))
+	var log_b: Mesh = shared("log_b", func(): return cyl(0.195, 0.2, TILE - 0.06, 10))
+	var beam: Mesh = shared("beam", func(): return cyl(0.1, 0.1, TILE + 0.04, 7))
+	var rope: Mesh = shared("rope", func(): return box(TILE, 0.035, 0.07))
 	var knot: Mesh = shared("knot", func(): return sphere(0.065, 6))
 	var rope_m: Material = shared("rope_m", func(): return mat(Color("9c8459"), 1.0))
 	var beam_m: Material = shared("beam_m", func(): return mat(Color("5e3f25"), 0.95))
 	var mats := []
-	for k in 5:
+	var n := 7
+	var step := (TILE - 0.42) / (n - 1)
+	for k in n:
 		var m := mat(BARK[posmod(i * 7 + j * 3 + k * 2, 5)], 0.95)
 		mats.append(m)
 		part(parent, log_a if posmod(i + j + k, 2) == 1 else log_b, m,
-			Vector3(-0.8 + k * 0.4, -0.1, (posmod(i * 3 + j * 5 + k * 7, 3) - 1) * 0.035), Vector3(PI / 2, 0, 0))
-	for z in [-0.62, 0.62]:
+			Vector3(-(TILE - 0.42) / 2.0 + k * step, -0.1, (posmod(i * 3 + j * 5 + k * 7, 3) - 1) * 0.04), Vector3(PI / 2, 0, 0))
+	for z in [-0.31 * TILE, 0.31 * TILE]:
 		part(parent, beam, beam_m, Vector3(0, -0.3, z), Vector3(0, 0, PI / 2))
-		part(parent, rope, rope_m, Vector3(0, 0.095, z))
-		part(parent, knot, rope_m, Vector3(0.98, 0.0, z))
+		part(parent, rope, rope_m, Vector3(0, 0.105, z))
+		part(parent, knot, rope_m, Vector3(TILE / 2.0 - 0.02, 0.0, z))
 	return mats
 
 

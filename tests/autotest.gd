@@ -18,8 +18,11 @@ func check(name: String, ok: bool) -> void:
 		fails += 1
 	print(("PASS " if ok else "FAIL ") + name)
 
+## Where the castaway is right now (from P, so a test that just moved them doesn't wait a frame).
 func pw() -> Vector3:
-	return game.player.global_position
+	if game.swim != null:
+		return game.swim.pos
+	return game.raft.to_global(Vector3(game.P["x"], 0.1, game.P["z"]))
 
 func _process(_d: float) -> void:
 	frame += 1
@@ -43,13 +46,13 @@ func _process(_d: float) -> void:
 				game._set_build(spec[0]); game._tap_ghost(spec[1])
 			check("props placed", game.objs.size() == 4)
 			var still = game._objs_of("still")[0]
-			game.P["x"] = 4.0; game.P["z"] = 0.0
+			game.P["x"] = 4.0 * Models.K; game.P["z"] = 0.0 * Models.K
 			game._tap_still(still, pw())
 			check("still fueled", still.fuel > 0.0)
 			still.prog = 19.9
 			# grill
 			game.inv["rawfish"] = 1
-			game.P["x"] = 4.0; game.P["z"] = 2.0
+			game.P["x"] = 4.0 * Models.K; game.P["z"] = 2.0 * Models.K
 			var grill = game._objs_of("grill")[0]
 			game._tap_grill(grill, pw())
 			check("fish on grill", grill.slots.size() == 1)
@@ -66,7 +69,7 @@ func _process(_d: float) -> void:
 			game._eat()
 			check("ate cooked fish", game.S["ate_cooked"] == 1)
 			# fishing: cast onto water beside the raft
-			game.P["x"] = 1.0; game.P["z"] = 1.0
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 			var o := pw() + Vector3(0, 8, 0)
 			var target := pw() + Vector3(0, -0.25 - pw().y, 5.0)
 			game._try_cast(o, (target - o).normalized(), pw())
@@ -92,10 +95,10 @@ func _process(_d: float) -> void:
 			check("shark repelled", game.S["repelled"] == 1 and game.shark.state == "flee")
 			# sailing
 			var sail = game._objs_of("sail")[0]
-			game.P["x"] = 0.0; game.P["z"] = 0.0
+			game.P["x"] = 0.0 * Models.K; game.P["z"] = 0.0 * Models.K
 			game._tap_sail(sail, pw())
 			var helm = game._objs_of("helm")[0]
-			game.P["x"] = -2.0; game.P["z"] = 0.0
+			game.P["x"] = -2.0 * Models.K; game.P["z"] = 0.0 * Models.K
 			game._tap_helm(helm, pw())
 			check("steering", game.steer != null)
 			game.heading = game.wind
@@ -228,7 +231,7 @@ func _process(_d: float) -> void:
 			for k in game.inv:
 				game.inv[k] = 0
 			game.inv["wood"] = 40; game.inv["plastic"] = 12; game.inv["clay"] = 6; game.inv["rope"] = 12; game.inv["palm"] = 6
-			game.P["x"] = 1.0; game.P["z"] = 1.0
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 			for c in [Vector2i(2, 0), Vector2i(2, 1), Vector2i(-1, 0), Vector2i(-1, 1)]:
 				game._set_build("floor"); game._tap_ghost(c)
 			game._set_build("field"); game._tap_ghost(Vector2i(0, 0)); game._tap_ghost(Vector2i(1, 0))
@@ -365,7 +368,7 @@ func _process(_d: float) -> void:
 		934:
 			var tb = game.traders.boat
 			check("boat docks beside the raft", tb.state == "stay")
-			game.P["x"] = 1.0; game.P["z"] = 1.0
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 		936:
 			var tb = game.traders.boat
 			game.traders.tap(Vector3(tb.x, 0, tb.z))
@@ -391,7 +394,7 @@ func _process(_d: float) -> void:
 			# bait halves the wait for a bite
 			game._close_sheet()
 			game.inv["bait"] = 2; game.inv["rod"] = 1; game._set_build("")
-			game.P["x"] = 1.0; game.P["z"] = 1.0
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 		940:
 			var o: Vector3 = pw() + Vector3(0, 8, 0)
 			var target: Vector3 = pw() + Vector3(0, -0.25 - pw().y, 5.0)
@@ -428,7 +431,7 @@ func _process(_d: float) -> void:
 			game.traders._remove_boat()
 			for c in [Vector2i(2, 0), Vector2i(2, 1)]:
 				game._set_build("floor"); game._tap_ghost(c)
-			game.P["x"] = 0.0; game.P["z"] = 0.0
+			game.P["x"] = 0.0 * Models.K; game.P["z"] = 0.0 * Models.K
 			var sh = game.shelter
 			game._set_build("wall")
 			check("wall ghosts on every free edge", sh.ghosts.size() == 17)
@@ -436,16 +439,16 @@ func _process(_d: float) -> void:
 			var wood0: int = game.inv["wood"]
 			game._place_shelter(wk)
 			check("wall built", sh.edges.has(wk) and sh.edges[wk].kind == "wall" and game.inv["wood"] == wood0 - 4)
-			check("wall blocks walking", not sh.can_walk(0.0, 0.0, 1.3, 0.0, 0))
+			check("wall blocks walking", not sh.can_walk(0.0 * Models.K, 0.0 * Models.K, 1.3 * Models.K, 0.0 * Models.K, 0))
 			game._set_build("door")
 			var dk: String = Shelter.edge_key(Vector2i(0, 0), Vector2i(0, 1), 0)
 			game._place_shelter(dk)
-			check("door lets you through", sh.can_walk(0.0, 0.0, 0.0, 1.3, 0))
+			check("door lets you through", sh.can_walk(0.0 * Models.K, 0.0 * Models.K, 0.0 * Models.K, 1.3 * Models.K, 0))
 			check("upper floor needs support", sh.upper_ok(Vector2i(1, 0)) and not sh.upper_ok(Vector2i(2, 1)))
 			game._set_build("window")
 			var wnk: String = Shelter.edge_key(Vector2i(1, 1), Vector2i(2, 1), 0)
 			game._place_shelter(wnk)
-			check("window wall blocks walking", not sh.can_walk(2.0, 2.0, 3.3, 2.0, 0))
+			check("window wall blocks walking", not sh.can_walk(2.0 * Models.K, 2.0 * Models.K, 3.3 * Models.K, 2.0 * Models.K, 0))
 			game._set_build("upper")
 			game._place_shelter("1|0")
 			game._place_shelter("2|0")
@@ -455,13 +458,13 @@ func _process(_d: float) -> void:
 			var st = game.tiles[Vector2i(1, 1)].obj
 			check("stairs placed facing the upper floor", st != null and st.kind == "stairs" and st.dir == Vector2i(0, -1))
 			game._set_build("")
-			game.P["x"] = 2.0; game.P["z"] = 2.0
+			game.P["x"] = 2.0 * Models.K; game.P["z"] = 2.0 * Models.K
 			game._tap_stairs(st, Vector3(2.0, 0, 2.0) + game.raft.global_position)
 			check("climbed the stairs", game.P["level"] == 1)
 		962:
 			var sh = game.shelter
 			check("player stands on the upper floor", game.player.position.y > 2.3)
-			check("upper floor walkable, edge is not", sh.can_walk(game.P["x"], game.P["z"], 4.0, 0.0, 1) and not sh.can_walk(game.P["x"], game.P["z"], 2.0, 3.2, 1))
+			check("upper floor walkable, edge is not", sh.can_walk(game.P["x"], game.P["z"], 4.0 * Models.K, 0.0 * Models.K, 1) and not sh.can_walk(game.P["x"], game.P["z"], 2.0 * Models.K, 3.2 * Models.K, 1))
 			game._set_build("pillar")
 			check("posts offered on the upper floor", sh.ghosts.size() > 0)
 			game._place_shelter("1|0|1")
@@ -469,13 +472,13 @@ func _process(_d: float) -> void:
 			game._place_shelter("1|0|1")
 			game._place_shelter("2|0|1")
 			check("roof over the upper floor", sh.roofs.has("1|0|1") and sh.roofs.has("2|0|1"))
-			game.P["level"] = 0; game.P["x"] = 0.0; game.P["z"] = 0.0
+			game.P["level"] = 0; game.P["x"] = 0.0 * Models.K; game.P["z"] = 0.0 * Models.K
 			game._set_build("roof")
 			game._place_shelter("0|0|0")
 			check("roof on the deck rests on the wall", sh.roofs.has("0|0|0"))
 			check("house goal", game.S["built_house"] == 1 and sh.covered_count() >= 3)
 			game._set_build("")
-			game.P["level"] = 1; game.P["x"] = 2.0; game.P["z"] = 0.0
+			game.P["level"] = 1; game.P["x"] = 2.0 * Models.K; game.P["z"] = 0.0 * Models.K
 		966:
 			var sh = game.shelter
 			check("roof hidden while you stand under it", not sh.roofs["1|0|1"].visible)
@@ -502,7 +505,7 @@ func _process(_d: float) -> void:
 			for k in ["wood", "plastic", "rope", "clay", "palm"]:
 				game.inv[k] = 20
 			game.inv["cup"] = 3; game.inv["water"] = 0; game.inv["seed_potato"] = 2
-			game.P["x"] = 1.0; game.P["z"] = 1.0
+			game.P["x"] = 1.0 * Models.K; game.P["z"] = 1.0 * Models.K
 			game._set_build("catcher"); game._tap_ghost(Vector2i(1, 0))
 			game._set_build("field"); game._tap_ghost(Vector2i(0, 1)); game._set_build("")
 			var fl = game.tiles[Vector2i(0, 1)].obj
@@ -565,7 +568,7 @@ func _process(_d: float) -> void:
 			cp.tap("dolphin", dol.global_position)
 			check("dolphin fed", cp.pets.dolphin.fed_once)
 			var t = game.tiles.values()[0]
-			game.P["x"] = t.cell.x * 2.0; game.P["z"] = t.cell.y * 2.0
+			game.P["x"] = t.cell.x * game.TILE; game.P["z"] = t.cell.y * game.TILE
 			game._toggle_swim()
 			check("in the water", game.swim != null)
 			for i in 3:

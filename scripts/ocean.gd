@@ -44,6 +44,7 @@ func _init() -> void:
 	_mask_img = Image.create(MASK_N, MASK_N, false, Image.FORMAT_L8)
 	_mask_tex = ImageTexture.create_from_image(_mask_img)
 	mat.set_shader_parameter("raft_mask", _mask_tex)
+	mat.set_shader_parameter("raft_cell", Models.TILE)
 	for i in 8:
 		_rips.append(Vector4(0, 0, -99, 0))
 	mat.set_shader_parameter("rip", PackedVector4Array(_rips))
