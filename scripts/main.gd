@@ -144,6 +144,8 @@ var seabed_nodes: Array = []
 var seaweeds: Array = []
 var seabed_mat: ShaderMaterial
 var uw_overlay: ColorRect
+var clouds: Node3D
+var cloud_mat: StandardMaterial3D
 var wreck_node: Dictionary = {}
 var cam_yaw := 0.7
 var cam_pitch := 0.55
@@ -262,6 +264,26 @@ func _setup_world() -> void:
 		Ocean.lite = true
 	ocean = Ocean.new()
 	add_child(ocean)
+	# a ring of cumulus far out over the sea, following the camera
+	clouds = Node3D.new()
+	add_child(clouds)
+	cloud_mat = StandardMaterial3D.new()
+	cloud_mat.albedo_color = Color(1, 1, 1)
+	cloud_mat.roughness = 1.0
+	cloud_mat.disable_fog = true
+	cloud_mat.emission_enabled = true
+	cloud_mat.emission = Color(0.55, 0.6, 0.68)
+	cloud_mat.emission_energy_multiplier = 0.35
+	var crng := RandomNumberGenerator.new()
+	crng.seed = 4242
+	for k in (12 if OS.has_feature("web") else 18):
+		var cl := Models.cloud(crng, cloud_mat)
+		var a := TAU * k / (12.0 if OS.has_feature("web") else 18.0) + crng.randf_range(-0.15, 0.15)
+		var d := crng.randf_range(320.0, 520.0)
+		cl.position = Vector3(cos(a) * d, crng.randf_range(24.0, 55.0), sin(a) * d)
+		cl.rotation.y = -a + PI / 2.0 + crng.randf_range(-0.4, 0.4)
+		cl.scale = Vector3(crng.randf_range(0.8, 1.4), crng.randf_range(0.55, 0.9), 1.0) * crng.randf_range(50.0, 105.0)
+		clouds.add_child(cl)
 	var uw := CanvasLayer.new()
 	uw.layer = -1
 	add_child(uw)
@@ -325,7 +347,7 @@ func _setup_islands() -> void:
 		islands.append(isl)
 	var gi: Dictionary = islands[2]
 	var gn := Models.goat()
-	gn.position = Vector3(-gi.r * 0.35, 0.65, gi.r * 0.3)
+	gn.position = Vector3(-gi.r * 0.35, Models.island_h(gi.r * 0.46, gi.r) - 0.2 + 0.05, gi.r * 0.3)
 	gn.rotation.y = 0.8
 	gi.node.add_child(gn)
 	gi.nodes.append({"kind": "goat", "node": gn, "used": false, "hit": Vector3(0, 0.6, 0), "island": gi})
@@ -398,6 +420,23 @@ func _setup_seabed() -> void:
 			if k % 3 != 0:
 				seaweeds.append([w, rng.randf() * TAU])
 				seabed_nodes.append({"kind": "kelp", "node": w, "pos": w.position, "cd": 0.0})
+	# things on the reef that are only there to look at (own seed: the gameplay spots above stay put)
+	var drng := RandomNumberGenerator.new()
+	drng.seed = 12
+	for isl in islands:
+		var reef := Node3D.new()
+		add_child(reef)
+		var base2: float = isl.r * 1.75
+		for k in (10 if OS.has_feature("web") else 18):
+			var a := drng.randf() * TAU
+			var d := base2 + drng.randf_range(0.0, 36.0)
+			var x: float = isl.x + cos(a) * d
+			var z: float = isl.z + sin(a) * d
+			var bit := Models.reef_bits(drng) if k % 2 == 0 else Models.coral(drng)
+			bit.position = Vector3(x, seabed_h(x, z), z)
+			bit.rotation.y = drng.randf() * TAU
+			reef.add_child(bit)
+		Models.bake(reef)
 	# a sunken boat off the second island
 	var isl2: Dictionary = islands[1]
 	var wa := 2.0
@@ -2394,6 +2433,12 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	sun.light_energy = 0.05 + 1.15 * b
 	sun.light_color = Color("fff1d6").lerp(Color("ff9a52"), dusk)
 	weather.apply_sky()
+	# clouds: white by day, warm at dusk, dark at night and in a storm; they drift with the wind
+	var cday := Color("1a2233").lerp(Color("ffffff"), b).lerp(Color("ffc8a0"), dusk * 0.6)
+	cloud_mat.albedo_color = cday.lerp(Color("6c7480"), weather.cloud * 0.75)
+	cloud_mat.emission = Color(0.08, 0.1, 0.14).lerp(Color(0.55, 0.6, 0.68), b) * (1.0 - 0.6 * weather.cloud)
+	clouds.position = Vector3(cam.global_position.x, 0, cam.global_position.z)
+	clouds.rotation.y += dt * 0.0025
 	var hours := fmod(6.0 + phase * 24.0, 24.0)
 	var hh := int(hours)
 	var mm := int((hours - hh) * 6.0) * 10
