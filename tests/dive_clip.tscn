@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/dive_clip.gd" id="1_c"]
+
+[node name="DiveClip" type="Node"]
+script = ExtResource("1_c")

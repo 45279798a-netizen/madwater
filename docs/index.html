@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+		<title>瘋狂水世界</title>
+		<link rel="manifest" href="manifest.webmanifest">
+		<meta name="theme-color" content="#0b2a33">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<meta name="apple-mobile-web-app-title" content="瘋狂水世界">
+		<link rel="apple-touch-icon" href="apple-touch-icon.png">
+		<link rel="icon" href="icon-192.png">
+		<style>
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+body {
+	color: white;
+	background-color: black;
+	overflow: hidden;
+	touch-action: none;
+}
+
+#canvas {
+	display: block;
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status, #status-splash, #status-progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+}
+
+#status, #status-splash {
+	top: 0;
+	bottom: 0;
+}
+
+#status {
+	background-color: #242424;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	visibility: hidden;
+}
+
+#status-splash {
+	max-height: 100%;
+	max-width: 100%;
+	margin: auto;
+}
+
+#status-splash.show-image--false {
+	display: none;
+}
+
+#status-splash.fullsize--true {
+	height: 100%;
+	width: 100%;
+	object-fit: contain;
+}
+
+#status-splash.use-filter--false {
+	image-rendering: pixelated;
+}
+
+#status-progress, #status-notice {
+	display: none;
+}
+
+#status-progress {
+	bottom: 10%;
+	width: 50%;
+	margin: 0 auto;
+}
+
+#status-notice {
+	background-color: #5b3943;
+	border-radius: 0.5rem;
+	border: 1px solid #9b3943;
+	color: #e0e0e0;
+	font-family: 'Noto Sans', 'Droid Sans', Arial, sans-serif;
+	line-height: 1.3;
+	margin: 0 2rem;
+	overflow: hidden;
+	padding: 1rem;
+	text-align: center;
+	z-index: 1;
+}
+		</style>
+		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status">
+			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
+			<progress id="status-progress"></progress>
+			<div id="status-notice"></div>
+		</div>
+
+		<script>
+// Fetch index.wasm from the gzipped index.wasm.bin and unpack it here (hosting caps files at 15 MB).
+(function () {
+	const realFetch = window.fetch.bind(window);
+	const note = document.createElement('div');
+	note.id = 'mw-load';
+	note.textContent = '載入中…';
+	document.addEventListener('DOMContentLoaded', () => document.body.appendChild(note));
+	window.fetch = async function (input, init) {
+		const url = typeof input === 'string' ? input : input.url;
+		if (/index\.pck(\?|$)/.test(url)) {
+			return realFetch(url.replace(/index\.pck(\?.*)?$/, 'game-data.wasm?v=1793116103'), init);
+		}
+		if (!/index\.wasm(\?|$)/.test(url)) {
+			return realFetch(input, init);
+		}
+		const r = await realFetch(url.replace(/index\.wasm(\?.*)?$/, 'engine.wasm?v=1793116103'), init);
+		if (!r.ok) {
+			return r;
+		}
+		const total = Number(r.headers.get('Content-Length')) || 10054770;
+		const reader = r.body.getReader();
+		const parts = [];
+		let got = 0;
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			parts.push(value);
+			got += value.length;
+			note.textContent = '下載遊戲中… ' + Math.min(99, Math.round(got / total * 100)) + '%';
+		}
+		const blob = new Blob(parts);
+		const head = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
+		note.textContent = '解壓縮中…';
+		let body = blob.stream();
+		if (head[0] === 0x1f && head[1] === 0x8b) {
+			body = body.pipeThrough(new DecompressionStream('gzip'));
+		}
+		const buf = await new Response(body).arrayBuffer();
+		note.textContent = '啟動中…';
+		setTimeout(() => note.remove(), 4000);
+		return new Response(buf, { status: 200, headers: { 'Content-Type': 'application/wasm', 'Content-Length': String(buf.byteLength) } });
+	};
+})();
+</script>
+<style>
+#mw-load { position: fixed; left: 0; right: 0; bottom: 18%; text-align: center; color: #f4ecd6;
+	font: 16px/1.4 system-ui, sans-serif; z-index: 5; text-shadow: 0 1px 3px #000; pointer-events: none; }
+body { background-color: #0b2a33; }
+#status { background-color: #0b2a33 !important; }
+</style>
+<script src="peerjs.min.js"></script>
+<script>
+// window.MWNet: the bridge between the game (scripts/net.gd, via JavaScriptBridge) and whatever
+// connects players on this page. The game polls; everything crosses as JSON text.
+//
+//  kind "room": inside Claude, the page's "room" capability (everyone viewing the page right now).
+//               The lobby carries open rooms in each host's presence ({mw: code}); a game is a
+//               named room "mw-<code>" whose presence carries each player's state under "g".
+//  kind "peer": anywhere else (GitHub Pages), PeerJS / WebRTC with a 4-digit room code. The host's
+//               peer id is "madwater-<code>"; friends connect straight to it and the host relays
+//               everyone's presence. No lobby list: friends type the code.
+//  kind "mock": tests (tests/web/mock_room.js), same shapes as "room".
+(function () {
+	const Q = [];
+	let kind = 'none', lobby = null, user = null, game = null, me = '', avail = 'wait', joined = '';
+	let peersDirty = false, lobbyDirty = true;
+	const names = {};
+	function push(e) { Q.push(e); if (Q.length > 800) Q.splice(0, Q.length - 800); }
+	function onErr(e) { push({ k: 'err', code: (e && e.code) || 'upstream_error' }); }
+	async function resolve(list) {
+		if (!user || !user.profiles) return;
+		const ids = list.map(p => p.by).filter(b => b && !(b in names));
+		if (!ids.length) return;
+		ids.forEach(i => { names[i] = ''; });
+		try {
+			const ps = await user.profiles(ids);
+			for (const i of ids) names[i] = (ps && ps[i] && ps[i].name) || '';
+			peersDirty = true; lobbyDirty = true;
+		} catch (e) { /* names are optional */ }
+	}
+	function snap(list) {
+		return list.filter(p => p.kind !== 'agent').map(p => ({
+			peer: p.peer, me: !!p.sameTab, name: (p.by && names[p.by]) || '', p: p.presence || {},
+		}));
+	}
+
+	// ------------------------------------------------------------ PeerJS rooms (outside Claude)
+	function peerOptions() {
+		const q = new URLSearchParams(location.search);
+		const o = { debug: 0 };
+		if (q.get('peerhost')) {   // tests: a local PeerJS server
+			o.host = q.get('peerhost');
+			o.port = Number(q.get('peerport') || 9000);
+			o.path = q.get('peerpath') || '/';
+			o.secure = false;
+			o.config = { iceServers: [] };
+		}
+		return o;
+	}
+	function makePeerApi() {
+		const P = window.Peer;
+		let peer = null, conns = new Map(), hostConn = null, role = '', myPres = {}, list = [], lastSent = 0, timer = null;
+		function selfEntry() { return { peer: me, sameTab: true, kind: 'viewer', by: null, presence: myPres }; }
+		function hostBroadcastPeers() {
+			const all = [{ peer: me, p: myPres }];
+			for (const [id, c] of conns) all.push({ peer: id, p: c.pres || {} });
+			const msg = { t: 'peers', list: all };
+			for (const c of conns.values()) if (c.open) c.send(msg);
+		}
+		function close() {
+			if (timer) clearInterval(timer);
+			timer = null;
+			for (const c of conns.values()) { try { c.close(); } catch (e) { /* ignore */ } }
+			conns.clear();
+			if (hostConn) { try { hostConn.close(); } catch (e) { /* ignore */ } }
+			hostConn = null;
+			if (peer) { try { peer.destroy(); } catch (e) { /* ignore */ } }
+			peer = null;
+			list = [];
+			role = '';
+		}
+		function join(name, r) {
+			close();
+			role = r;
+			const code = name.replace(/^mw-/, '');
+			const opts = peerOptions();
+			if (role === 'host') {
+				peer = new P('madwater-' + code, opts);
+				peer.on('open', id => {
+					me = id;
+					push({ k: 'joined', ok: true });
+					timer = setInterval(hostBroadcastPeers, 100);
+				});
+				peer.on('connection', c => {
+					c.on('open', () => { conns.set(c.peer, c); peersDirty = true; });
+					c.on('data', m => {
+						if (!m || typeof m !== 'object') return;
+						if (m.t === 'pres') { c.pres = m.p; peersDirty = true; }
+						else if (m.t === 'msg') push({ k: 'msg', topic: m.topic, peer: c.peer, me: false, data: m.data });
+					});
+					c.on('close', () => { conns.delete(c.peer); peersDirty = true; });
+					c.on('error', () => { conns.delete(c.peer); peersDirty = true; });
+				});
+			} else {
+				peer = new P(opts);
+				peer.on('open', id => {
+					me = id;
+					hostConn = peer.connect('madwater-' + code, { reliable: true, serialization: 'json' });
+					hostConn.on('open', () => { push({ k: 'joined', ok: true }); peersDirty = true; });
+					hostConn.on('data', m => {
+						if (!m || typeof m !== 'object') return;
+						if (m.t === 'peers') { list = m.list || []; peersDirty = true; }
+						else if (m.t === 'msg') push({ k: 'msg', topic: m.topic, peer: m.from || 'madwater-' + code, me: false, data: m.data });
+					});
+					hostConn.on('close', () => { list = []; peersDirty = true; });
+				});
+			}
+			peer.on('error', e => {
+				const t = e && e.type;
+				if (t === 'unavailable-id') push({ k: 'joined', ok: false, code: 'taken' });
+				else if (t === 'peer-unavailable') push({ k: 'joined', ok: false, code: 'no_room' });
+				else if (t === 'network' || t === 'server-error' || t === 'socket-error' || t === 'socket-closed') push({ k: 'joined', ok: false, code: 'network' });
+				else push({ k: 'err', code: t || 'upstream_error' });
+			});
+			peer.on('disconnected', () => { try { peer && !peer.destroyed && peer.reconnect(); } catch (e) { /* ignore */ } });
+		}
+		return {
+			join,
+			leave: close,
+			emit(topic, data) {
+				if (role === 'host') {
+					const m = { t: 'msg', topic, data, from: me };
+					for (const c of conns.values()) if (c.open) c.send(m);
+				} else if (hostConn && hostConn.open) {
+					hostConn.send({ t: 'msg', topic, data });
+				}
+			},
+			presence(p) {
+				myPres = p;
+				if (role === 'client' && hostConn && hostConn.open) hostConn.send({ t: 'pres', p });
+				else if (role === 'host') peersDirty = true;
+			},
+			peers() {
+				const out = [selfEntry()];
+				if (role === 'host') {
+					for (const [id, c] of conns) out.push({ peer: id, sameTab: false, kind: 'viewer', by: null, presence: c.pres || {} });
+				} else {
+					for (const e of list) if (e.peer !== me) out.push({ peer: e.peer, sameTab: false, kind: 'viewer', by: null, presence: e.p || {} });
+				}
+				return out;
+			},
+			connected() { return role === 'host' ? !!(peer && peer.open) : !!(hostConn && hostConn.open); },
+		};
+	}
+	let peerApi = null;
+
+	async function init() {
+		let api = null;
+		const C = window.claude;
+		if (C && typeof C.use === 'function') {
+			try { api = await C.use('room'); } catch (e) { api = null; }
+			try { user = await C.use('user'); } catch (e) { user = null; }
+		}
+		if (api) {
+			kind = 'room';
+		} else if (typeof window.MWMock === 'function') {
+			api = window.MWMock();
+			kind = 'mock';
+		} else if (typeof window.Peer === 'function') {
+			peerApi = makePeerApi();
+			kind = 'peer';
+			me = 'p' + Math.random().toString(36).slice(2, 8);
+			avail = 'yes';
+			return;
+		}
+		if (!api) { avail = 'no'; return; }
+		lobby = api;
+		avail = 'yes';
+		lobby.onPeers(ch => {
+			for (const p of ch.peers) if (p.sameTab) me = p.peer;
+			lobbyDirty = true;
+			resolve(ch.peers);
+		}, e => { avail = 'no'; onErr(e); });
+	}
+
+	window.MWNet = {
+		status() {
+			return JSON.stringify({ avail, me, joined, kind, conn: game ? game.connected() : (peerApi ? peerApi.connected() : false) });
+		},
+		lobbySet(json) {
+			if (lobby) lobby.presence(JSON.parse(json)).catch(onErr);
+		},
+		join(name, role) {
+			if (peerApi) { joined = name; peerApi.join(name, role || 'client'); return; }
+			if (!lobby) { push({ k: 'joined', ok: false, code: 'not_granted' }); return; }
+			if (game) { try { game.leave(); } catch (e) { /* ignore */ } game = null; }
+			lobby.join(name).then(r => {
+				game = r;
+				joined = name;
+				for (const t of ['w', 'a', 'j', 'x']) {
+					r.on(t, m => push({ k: 'msg', topic: t, peer: m.peer, me: !!m.sameTab, data: m.data }), onErr);
+				}
+				r.onPeers(ch => { peersDirty = true; resolve(ch.peers); }, onErr);
+				peersDirty = true;
+				push({ k: 'joined', ok: true });
+			}, e => push({ k: 'joined', ok: false, code: (e && e.code) || 'upstream_error' }));
+		},
+		leave() {
+			if (peerApi) peerApi.leave();
+			if (game) { try { game.leave(); } catch (e) { /* ignore */ } }
+			game = null;
+			joined = '';
+		},
+		emit(topic, json) {
+			if (peerApi) { peerApi.emit(topic, JSON.parse(json)); return; }
+			if (game) game.emit(topic, JSON.parse(json)).catch(onErr);
+		},
+		presence(json) {
+			if (peerApi) { peerApi.presence({ g: JSON.parse(json) }); return; }
+			if (game) game.presence({ g: JSON.parse(json) }).catch(onErr);
+		},
+		poll() {
+			const out = { ev: Q.splice(0) };
+			if (peersDirty && (game || peerApi)) { peersDirty = false; out.peers = snap(game ? game.peers() : peerApi.peers()); }
+			if (lobbyDirty && lobby) { lobbyDirty = false; out.lobby = snap(lobby.peers()); }
+			return JSON.stringify(out);
+		},
+
+		// ------------------------------------------------------------ full screen / home screen
+		screen() {
+			const d = document;
+			const standalone = !!(navigator.standalone || matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
+			const can = !!(d.fullscreenEnabled || d.webkitFullscreenEnabled);
+			const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+			return JSON.stringify({ standalone, can: can && !standalone, full: !!(d.fullscreenElement || d.webkitFullscreenElement), ios });
+		},
+		fullscreen() {
+			const el = document.documentElement;
+			const rq = el.requestFullscreen || el.webkitRequestFullscreen;
+			if (!rq) return 'no';
+			try {
+				const p = rq.call(el, { navigationUI: 'hide' });
+				const lock = () => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* ignore */ } };
+				if (p && p.then) p.then(lock, () => {}); else lock();
+			} catch (e) { return 'no'; }
+			return 'ok';
+		},
+	};
+	init();
+})();
+</script>
+<script src="index.js"></script>
+		<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":6341876,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+	let statusMode = '';
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		setStatusMode('progress');
+		engine.startGame({
+			'onProgress': function (current, total) {
+				if (current > 0 && total > 0) {
+					statusProgress.value = current;
+					statusProgress.max = total;
+				} else {
+					statusProgress.removeAttribute('value');
+					statusProgress.removeAttribute('max');
+				}
+			},
+		}).then(() => {
+			setStatusMode('hidden');
+		}, displayFailureNotice);
+	}
+}());
+		</script>
+	<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});</script>
+</body>
+</html>
+

@@ -1,0 +1,30 @@
+{
+ "name": "瘋狂水世界",
+ "short_name": "瘋狂水世界",
+ "description": "在海上漂流求生，跟朋友一起蓋木筏。",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "fullscreen",
+ "orientation": "landscape",
+ "background_color": "#0b2a33",
+ "theme_color": "#0b2a33",
+ "lang": "zh-Hant",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
