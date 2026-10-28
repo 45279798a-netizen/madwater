@@ -2688,3 +2688,286 @@ static func engine() -> Dictionary:
 	part(g, sphere(0.045, 8), mat(Color("2a3a2a")), Vector3(0.2, 0.6, 0.255))
 	bake(g, [prop, lamp])
 	return {"node": g, "prop": prop, "lamp": lamp}
+
+
+# ---------------------------------------------------------------- home, food and the way home
+
+## A low wooden bed: plank frame, a straw mattress, a rolled blanket and a pillow.
+static func bed() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("8a5a33"), "planks", 0.9, 1.5)
+	var dark := tm(Color("5c3d22"), "planks", 0.9, 2.0)
+	for x in [-0.4, 0.4]:
+		for z in [-0.85, 0.85]:
+			part(g, box(0.08, 0.3, 0.08), dark, Vector3(x, 0.15, z))
+	part(g, box(0.9, 0.08, 1.8), wood, Vector3(0, 0.26, 0))
+	part(g, box(0.92, 0.36, 0.08), dark, Vector3(0, 0.42, -0.9))   # headboard
+	part(g, box(0.8, 0.12, 1.7), tm(Color("d8c27a"), "thatch", 1.0, 2.0, 0.8), Vector3(0, 0.36, 0))
+	part(g, box(0.82, 0.05, 1.0), tm(Color("4a7fa8"), "cloth", 0.9, 2.0), Vector3(0, 0.44, 0.3))
+	part(g, cyl(0.1, 0.1, 0.82, 10), tm(Color("3d6e95"), "cloth", 0.9, 2.0), Vector3(0, 0.48, 0.82), Vector3(0, 0, PI / 2))
+	part(g, box(0.5, 0.1, 0.3), tm(Color("efe6d2"), "cloth", 0.9, 3.0), Vector3(0, 0.47, -0.62))
+	bake(g)
+	return {"node": g}
+
+
+## A small table with two stools and a cup and a plate on it.
+static func table_set() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("9a6a40"), "planks", 0.9, 1.5)
+	var dark := tm(Color("6a4528"), "planks", 0.9, 2.0)
+	part(g, box(0.9, 0.06, 0.7), wood, Vector3(0, 0.72, 0))
+	for x in [-0.38, 0.38]:
+		for z in [-0.28, 0.28]:
+			part(g, box(0.06, 0.7, 0.06), dark, Vector3(x, 0.36, z))
+	for sx in [-1.0, 1.0]:
+		part(g, cyl(0.2, 0.2, 0.05, 12), wood, Vector3(sx * 0.75, 0.45, 0))
+		for k in 3:
+			var a := TAU * k / 3.0
+			part(g, cyl(0.025, 0.03, 0.44, 5), dark, Vector3(sx * 0.75 + cos(a) * 0.13, 0.22, sin(a) * 0.13))
+	part(g, cyl(0.16, 0.14, 0.02, 14), tm(Color("e8e2d4"), "plastic", 0.5, 3.0), Vector3(0.15, 0.76, 0.05))
+	part(g, cyl(0.05, 0.045, 0.12, 10), tm(Color("eaf6fb"), "plastic", 0.4, 3.0), Vector3(-0.22, 0.81, -0.1))
+	part(g, sphere(0.06, 8), mat(Color("c0482e")), Vector3(0.15, 0.8, 0.05), Vector3.ZERO, Vector3(1, 0.6, 1))
+	bake(g)
+	return {"node": g}
+
+
+## A post with a coconut-oil lantern hanging off it; "light" and "flame" come on at night.
+static func lantern() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("7a5232"), "bark", 0.9, 2.0)
+	var iron := tm(Color("3d4247"), "metal", 0.55, 2.0)
+	part(g, cyl(0.05, 0.06, 1.9, 7), wood, Vector3(0, 0.95, 0))
+	part(g, box(0.5, 0.05, 0.05), wood, Vector3(0.22, 1.85, 0))
+	part(g, cyl(0.2, 0.22, 0.06, 10), wood, Vector3(0, 0.03, 0))
+	var lamp := Node3D.new()
+	lamp.position = Vector3(0.42, 1.45, 0)
+	g.add_child(lamp)
+	_rod(g, Vector3(0.42, 1.83, 0), Vector3(0.42, 1.67, 0), 0.01, iron)
+	part(lamp, cyl(0.07, 0.12, 0.06, 8), iron, Vector3(0, 0.2, 0))
+	part(lamp, cyl(0.12, 0.1, 0.05, 8), iron, Vector3(0, -0.13, 0))
+	part(lamp, cyl(0.1, 0.1, 0.28, 8), glass(Color("fff2c8"), 0.35), Vector3(0, 0.03, 0))
+	for k in 4:
+		var a := TAU * k / 4.0 + PI / 4
+		part(lamp, box(0.015, 0.3, 0.015), iron, Vector3(cos(a) * 0.105, 0.03, sin(a) * 0.105))
+	var flame := MeshInstance3D.new()
+	flame.mesh = cyl(0.0, 0.035, 0.1, 6)
+	var fm := StandardMaterial3D.new()
+	fm.albedo_color = Color("ffd27a")
+	fm.emission_enabled = true
+	fm.emission = Color("ffb040")
+	fm.emission_energy_multiplier = 4.0
+	flame.material_override = fm
+	flame.position = Vector3(0.42, 1.45, 0)
+	flame.visible = false
+	g.add_child(flame)
+	var light := OmniLight3D.new()
+	light.position = Vector3(0.42, 1.45, 0)
+	light.light_color = Color("ffb262")
+	light.light_energy = 1.4
+	light.omni_range = 6.0
+	light.shadow_enabled = false
+	light.visible = false
+	g.add_child(light)
+	bake(lamp)
+	bake(g, [lamp, flame])
+	return {"node": g, "light": light, "flame": flame}
+
+
+## A pole with a waving cloth flag.
+static func flag() -> Dictionary:
+	var g := Node3D.new()
+	part(g, cyl(0.035, 0.045, 3.0, 7), tm(Color("8a6a40"), "bark", 0.9, 2.0), Vector3(0, 1.5, 0))
+	part(g, sphere(0.06, 8), mat(Color("e0b22a"), 0.4, 0.6), Vector3(0, 3.03, 0))
+	part(g, cyl(0.25, 0.3, 0.12, 10), tm(Color("6f675e"), "stone", 0.95, 2.5), Vector3(0, 0.06, 0))
+	var cloth := Node3D.new()
+	cloth.name = "Cloth"
+	cloth.position = Vector3(0, 2.6, 0)
+	g.add_child(cloth)
+	var cm := tmat(Color("e0482e"), "cloth", 0.8, 2.0, 0.6)
+	cm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	part(cloth, box(0.9, 0.55, 0.02), cm, Vector3(0.47, 0, 0))
+	var wm := tmat(Color("f4ecd6"), "cloth", 0.8, 2.0, 0.6)
+	wm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	part(cloth, box(0.9, 0.12, 0.025), wm, Vector3(0.47, 0, 0))
+	bake(cloth)
+	bake(g, [cloth])
+	return {"node": g, "cloth": cloth}
+
+
+## A clay pot of flowers.
+static func flowerpot() -> Dictionary:
+	var g := Node3D.new()
+	var clay := tm(Color("b4673f"), "soil", 0.9, 2.0, 0.6)
+	part(g, cyl(0.26, 0.2, 0.36, 14), clay, Vector3(0, 0.18, 0))
+	part(g, cyl(0.29, 0.29, 0.06, 14), clay, Vector3(0, 0.38, 0))
+	part(g, cyl(0.24, 0.24, 0.03, 12), tm(Color("4a3226"), "soil", 1.0, 3.0), Vector3(0, 0.38, 0))
+	var stem := mat(Color("4f7f34"), 0.8)
+	var cols := [Color("e8504a"), Color("f2d04a"), Color("f4f0f0"), Color("c86ad8"), Color("e8504a")]
+	for k in 5:
+		var a := TAU * k / 5.0
+		var top := Vector3(cos(a) * 0.12, 0.75 + 0.08 * sin(k * 2.0), sin(a) * 0.12)
+		_rod(g, Vector3(cos(a) * 0.05, 0.38, sin(a) * 0.05), top, 0.012, stem)
+		part(g, sphere(0.07, 8), mat(cols[k], 0.6), top, Vector3.ZERO, Vector3(1, 0.5, 1))
+		part(g, sphere(0.025, 6), mat(Color("f2c23a"), 0.6), top + Vector3(0, 0.03, 0))
+		part(g, box(0.14, 0.01, 0.06), stem, Vector3(cos(a) * 0.09, 0.5, sin(a) * 0.09), Vector3(0, -a, 0.4))
+	bake(g)
+	return {"node": g}
+
+
+## Cooking pot: a black iron pot hung over a small fire between two forked sticks; "bars" is the
+## finished stew showing in the pot.
+static func cook_pot() -> Dictionary:
+	var g := Node3D.new()
+	var iron := tm(Color("2a2d30"), "metal", 0.6, 2.0)
+	iron.metallic = 0.4
+	var stick := tm(Color("7a5a3a"), "bark", 0.95, 3.0)
+	var stone := tm(Color("8a8378"), "stone", 0.95, 2.5, 1.5)
+	for k in 8:
+		var a := TAU * k / 8.0
+		part(g, sphere(0.13, 7), stone, Vector3(cos(a) * 0.36, 0.08, sin(a) * 0.36), Vector3(k, k, 0), Vector3(1.2, 0.75, 1.0))
+	var logs := tm(Color("6a4a2a"), "bark", 0.95, 3.0)
+	for k in 3:
+		part(g, cyl(0.045, 0.045, 0.5, 7), logs, Vector3(0, 0.1, 0), Vector3(PI / 2, k * 1.05, 0.1))
+	for x in [-0.5, 0.5]:
+		_rod(g, Vector3(x, 0.0, 0), Vector3(x, 1.0, 0), 0.03, stick)
+		_rod(g, Vector3(x, 0.92, 0), Vector3(x + 0.06, 1.08, 0), 0.02, stick)
+		_rod(g, Vector3(x, 0.92, 0), Vector3(x - 0.06, 1.08, 0), 0.02, stick)
+	_rod(g, Vector3(-0.58, 0.98, 0), Vector3(0.58, 0.98, 0), 0.025, stick)
+	_rod(g, Vector3(0, 0.98, 0), Vector3(0, 0.72, 0), 0.01, iron)
+	part(g, cyl(0.28, 0.22, 0.32, 16), iron, Vector3(0, 0.52, 0))
+	part(g, _tor(0.27, 0.31), iron, Vector3(0, 0.68, 0))
+	part(g, _tor(0.18, 0.2), iron, Vector3(0, 0.72, 0), Vector3(PI / 2, 0, 0))
+	var bars := Node3D.new()
+	g.add_child(bars)
+	part(bars, cyl(0.25, 0.25, 0.02, 14), mat(Color("c98a3a"), 0.4), Vector3(0, 0.66, 0))
+	for k in 4:
+		part(bars, sphere(0.04, 6), mat(Color("e8c07a") if k % 2 == 0 else Color("6b8a2c"), 0.5), Vector3(cos(k * 1.7) * 0.12, 0.675, sin(k * 1.7) * 0.12))
+	bars.visible = false
+	bake(bars)
+	var fire := Node3D.new()
+	g.add_child(fire)
+	for f in [Vector3(0, 0, 0.28), Vector3(0.1, 0.06, 0.2), Vector3(-0.09, -0.05, 0.22)]:
+		part(fire, cyl(0.0, 0.08, f.z, 7), fire_mat(), Vector3(f.x, 0.12 + f.z / 2.0, f.y))
+	fire.visible = false
+	bake(g, [fire, bars])
+	return {"node": g, "fire": fire, "bars": bars}
+
+
+## A bigger, iron-bound chest.
+static func big_chest() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("6e4a2e"), "planks", 0.9, 1.5)
+	var metal := tm(Color("5a6066"), "metal", 0.45, 2.0)
+	metal.metallic = 0.6
+	part(g, box(1.5, 0.66, 0.85), wood, Vector3(0, 0.36, 0))
+	part(g, box(1.54, 0.2, 0.89), wood, Vector3(0, 0.79, 0))
+	for x in [-0.72, -0.25, 0.25, 0.72]:
+		part(g, box(0.07, 0.92, 0.9), metal, Vector3(x, 0.46, 0))
+	for y in [0.06, 0.69, 0.9]:
+		part(g, box(1.56, 0.05, 0.9), metal, Vector3(0, y, 0))
+	part(g, box(0.18, 0.2, 0.05), mat(Color("c9a24a"), 0.35, 0.8), Vector3(0, 0.66, 0.45))
+	for sx in [-1.0, 1.0]:
+		part(g, _tor(0.06, 0.085), metal, Vector3(sx * 0.79, 0.5, 0), Vector3(0, 0, PI / 2))
+	bake(g)
+	return {"node": g}
+
+
+## Radio set on a crate, with a tall wire antenna.
+static func radio() -> Dictionary:
+	var g := Node3D.new()
+	var crate := tm(Color("7a5232"), "planks", 0.9, 2.0)
+	var body := tm(Color("4a5a3a"), "metal", 0.5, 2.0)
+	var steel := tm(Color("8d949a"), "metal", 0.4, 2.5)
+	steel.metallic = 0.7
+	part(g, box(0.7, 0.5, 0.55), crate, Vector3(0, 0.25, 0))
+	part(g, box(0.6, 0.36, 0.42), body, Vector3(0, 0.68, 0))
+	part(g, box(0.36, 0.14, 0.02), mat(Color("1c2a1c"), 0.3), Vector3(-0.06, 0.74, 0.215))
+	part(g, box(0.3, 0.02, 0.01), _glow(Color("7dff6a"), 2.0), Vector3(-0.06, 0.74, 0.226))
+	for k in 2:
+		part(g, cyl(0.035, 0.035, 0.04, 10), steel, Vector3(0.2, 0.62 + k * 0.12, 0.22), Vector3(PI / 2, 0, 0))
+	_rod(g, Vector3(0.2, 0.86, -0.1), Vector3(0.2, 3.2, -0.1), 0.015, steel)
+	for k in 3:
+		var y := 2.2 + k * 0.4
+		_rod(g, Vector3(0.2 - 0.3 + k * 0.08, y, -0.1), Vector3(0.2 + 0.3 - k * 0.08, y, -0.1), 0.01, steel)
+	part(g, sphere(0.04, 6), _glow(Color("ff4a2a"), 3.0), Vector3(0.2, 3.22, -0.1))
+	# handset on a coiled cord
+	part(g, box(0.08, 0.06, 0.24), mat(Color("1c1c1c"), 0.6), Vector3(-0.42, 0.53, 0.05), Vector3(0, 0.3, 0))
+	bake(g)
+	return {"node": g}
+
+
+## Metal plates bolted along the logs of a reinforced tile.
+static func reinforce_plate() -> Node3D:
+	var g := Node3D.new()
+	var metal: StandardMaterial3D = shared("rf_metal", func():
+		var m := tmat(Color("7d848a"), "metal", 0.45, 2.0)
+		m.metallic = 0.6
+		return m)
+	var bolt: StandardMaterial3D = shared("rf_bolt", func(): return mat(Color("3a3f44"), 0.5, 0.7))
+	for z in [-0.31 * TILE, 0.31 * TILE]:
+		part(g, box(TILE + 0.04, 0.03, 0.22), metal, Vector3(0, 0.13, z))
+		for k in 7:
+			part(g, cyl(0.03, 0.03, 0.02, 6), bolt, Vector3(-TILE / 2.0 + 0.2 + k * (TILE - 0.4) / 6.0, 0.15, z))
+	for x in [-TILE / 2.0 - 0.02, TILE / 2.0 + 0.02]:
+		part(g, box(0.05, 0.5, TILE + 0.04), metal, Vector3(x, -0.15, 0))
+	for z in [-TILE / 2.0 - 0.02, TILE / 2.0 + 0.02]:
+		part(g, box(TILE + 0.04, 0.5, 0.05), metal, Vector3(0, -0.15, z))
+	bake(g, [], false)
+	return g
+
+
+## Lighthouse: a striped stone tower on a plinth, a gallery, a glass lantern room with a light and a
+## turning beam ("Beam").
+static func lighthouse() -> Node3D:
+	var g := Node3D.new()
+	var white := tm(Color("eee8dc"), "stone", 0.85, 1.0, 0.8)
+	var red := tm(Color("c0402e"), "stone", 0.85, 1.0, 0.8)
+	var dark := tm(Color("33383d"), "metal", 0.5, 2.0)
+	var base := tm(Color("8a8378"), "stone", 0.95, 1.0, 1.5)
+	part(g, cyl(1.9, 2.1, 0.8, 16), base, Vector3(0, 0.4, 0))
+	var h := 0.8
+	for k in 5:
+		var r0 := 1.5 - k * 0.14
+		var r1 := 1.5 - (k + 1) * 0.14
+		part(g, cyl(r1, r0, 1.6, 16), white if k % 2 == 0 else red, Vector3(0, h + 0.8, 0))
+		h += 1.6
+	part(g, cyl(1.2, 1.2, 0.15, 16), dark, Vector3(0, h + 0.07, 0))   # gallery floor
+	for k in 12:
+		var a := TAU * k / 12.0
+		part(g, cyl(0.025, 0.025, 0.6, 5), dark, Vector3(cos(a) * 1.15, h + 0.45, sin(a) * 1.15))
+	part(g, _tor(1.12, 1.18), dark, Vector3(0, h + 0.75, 0))
+	part(g, cyl(0.62, 0.62, 1.0, 12), glass(Color("fff6d8"), 0.4), Vector3(0, h + 0.65, 0))
+	part(g, sphere(0.35, 10), _glow(Color("fff0b0"), 4.0), Vector3(0, h + 0.65, 0))
+	part(g, cyl(0.1, 0.75, 0.6, 12), red, Vector3(0, h + 1.45, 0))
+	part(g, sphere(0.12, 8), dark, Vector3(0, h + 1.8, 0))
+	part(g, box(0.5, 1.0, 0.1), tm(Color("6a4528"), "planks", 0.9, 2.0), Vector3(0, 1.3, 1.45))   # door
+	var light := OmniLight3D.new()
+	light.position = Vector3(0, h + 0.65, 0)
+	light.light_color = Color("fff0c0")
+	light.light_energy = 3.0
+	light.omni_range = 26.0
+	light.shadow_enabled = false
+	g.add_child(light)
+	var beam := Node3D.new()
+	beam.name = "Beam"
+	beam.position = Vector3(0, h + 0.65, 0)
+	g.add_child(beam)
+	# two beams, each a few cone sections that grow wider and fainter with distance
+	var segs := [[0.25, 0.7, 6.0, 0.07], [0.7, 1.3, 8.0, 0.045], [1.3, 2.0, 10.0, 0.025], [2.0, 2.8, 12.0, 0.012]]
+	for sx in [-1.0, 1.0]:
+		var x0 := 0.4
+		for sg in segs:
+			var bm := StandardMaterial3D.new()
+			bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			bm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			bm.disable_fog = true
+			bm.albedo_color = Color(1.0, 0.93, 0.7, sg[3])
+			var tube := cyl(sg[0], sg[1], sg[2], 10)
+			tube.cap_top = false
+			tube.cap_bottom = false
+			var cone := part(beam, tube, bm, Vector3(sx * (x0 + sg[2] * 0.5), 0, 0), Vector3(0, 0, sx * PI / 2))
+			cone.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			x0 += sg[2]
+	bake(g, [beam])
+	return g

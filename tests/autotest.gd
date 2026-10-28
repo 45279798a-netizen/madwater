@@ -696,8 +696,8 @@ func _process(_d: float) -> void:
 			game._on_recipe("mhook")
 			check("metal hook locked before stage 4", game.inv["mhook"] == 0)
 			game._close_sheet()
-			game.S["drank"] = 1; game.S["dug"] = 1
-			check("an ingot reaches the metal age", game._stage() == 3)
+			game.S["drank"] = 1; game.S["dug"] = 1; game.S["harvested"] = 1
+			check("an ingot reaches the metal age", game._stage() == 5)
 			game._on_action("craft")
 			for r in ["mhook", "canteen", "flippers", "o2tank", "mspear"]:
 				game._on_recipe(r)
@@ -774,7 +774,7 @@ func _process(_d: float) -> void:
 			var en = game._objs_of("engine")[0]
 			check("engine pushes the raft without wind", game.raft_vel.length() > 0.05 and en.fuel < game.ENGINE_MAX)
 			var g4: Array = game._goals()
-			check("upgrade goals done", g4.size() == 19 and g4[15][2] and g4[16][2] and g4[17][2] and g4[18][2])
+			check("upgrade goals done", g4.size() == 24 and g4[17][2] and g4[18][2] and g4[19][2] and g4[20][2])
 			# collect from the net and the trap
 			var wood0: int = game.inv["wood"] + int(cn.store.get("wood", 0))
 			game.P["x"] = cn.tile.cell.x * Models.TILE * 0.7; game.P["z"] = cn.tile.cell.y * Models.TILE * 0.7
@@ -805,5 +805,137 @@ func _process(_d: float) -> void:
 			check("anchor holds the raft", game.raft_vel.length() < 0.2)
 		1106:
 			check("anchor hangs in the water", game._objs_of("anchor")[0].line.visible)
+		1110:
+			# ---- 8 stages, home, food, armour, the way home
+			game._on_action("start_survival")
+			game.shark.timer = 999.0
+			game.S["bag"] = 300
+			for k in ["wood", "rope", "plastic", "palm", "clay", "sand", "kelp", "coconut"]:
+				game.inv[k] = 99
+			game.inv["glass"] = 10; game.inv["ore"] = 5; game.inv["rawfish"] = 5
+			check("a new game is in stage 1", game._stage() == 0)
+			game.S["drank"] = 1
+			check("drinking reaches stage 2", game._stage() == 1)
+			for c in [Vector2i(2, 0), Vector2i(2, 1), Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(3, 0), Vector2i(3, 1), Vector2i(4, 0), Vector2i(4, 1)]:
+				game._set_build("floor"); game._tap_ghost(c)
+			check("an 8-tile raft reaches stage 3", game._stage() == 2)
+			game.S["dug"] = 1
+			check("digging reaches stage 4", game._stage() == 3)
+			game.S["eggs"] = 1
+			check("an egg reaches stage 5", game._stage() == 4)
+			game.inv["ingot"] = 40
+			check("an ingot reaches stage 6", game._stage() == 5)
+			game.S["smelted"] = 8
+			check("8 bars reach stage 7", game._stage() == 6)
+			game.S["islands"] = 3
+			game._refresh_goals()
+			check("3 islands reach stage 8", game._stage() == 7 and game.S["stage"] == 7)
+			game._on_action("craft")
+			check("craft list shows 8 stages", game.hud.sheet_list.get_child_count() == game.CRAFT.size() + 8)
+			for r in ["hammer", "bandage", "bandage", "bandage", "bait", "torch", "cloak", "rod2", "armor", "spyglass", "axe", "fert", "medkit", "speargun", "headlamp", "marmor", "flare"]:
+				game._on_recipe(r)
+			game._close_sheet()
+			var made := true
+			for k in ["hammer", "torch", "cloak", "rod2", "armor", "spyglass", "axe", "speargun", "headlamp", "marmor", "flare", "medkit"]:
+				if game.inv[k] < 1:
+					made = false
+					print("  missing ", k)
+			check("all new tools crafted", made and game.inv["bait"] == 3 and game.inv["fert"] == 2 and game.inv["bandage"] == 1)
+			game.S["health"] = 50.0
+			game._heal()
+			check("bandage heals 30", is_equal_approx(game.S["health"], 80.0) and game.inv["bandage"] == 0)
+			game.S["health"] = 30.0
+			game._heal()
+			check("first-aid kit heals 70", is_equal_approx(game.S["health"], 100.0) and game.inv["medkit"] == 0)
+			check("metal armour stops 65%", is_equal_approx(game._armor_k(), 0.35))
+			# hammer
+			var t0 = game.tiles[Vector2i(1, 1)]
+			t0.hp = 1
+			game.P["x"] = 1.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			game._repair(t0, pw())
+			check("hammer repairs a bitten tile", t0.hp == 3)
+			# builds
+			for spec in [["bed", Vector2i(2, 0)], ["pot", Vector2i(2, 1)], ["bigchest", Vector2i(-1, 0)], ["lantern", Vector2i(-1, 1)], ["radio", Vector2i(0, 2)],
+					["table", Vector2i(1, 2)], ["flag", Vector2i(3, 0)], ["flowerpot", Vector2i(3, 1)], ["field", Vector2i(4, 0)]]:
+				game._set_build(spec[0]); game._tap_ghost(spec[1])
+			game._set_build("")
+			var all_built := true
+			for k in ["bed", "pot", "bigchest", "lantern", "radio", "table", "flag", "flowerpot"]:
+				if game._objs_of(k).size() != 1:
+					all_built = false
+					print("  not built ", k)
+			check("home and way-home pieces built", all_built)
+			check("big chest adds 24 slots", game._capacity() == 300 + 24)
+			# sleep through the night
+			game.game_t = 138.4
+			check("it is night", game._is_night())
+			game.P["x"] = 2.0 * Models.TILE; game.P["z"] = 0.0
+			game._tap_bed(game._objs_of("bed")[0], pw())
+			check("slept until morning", not game._is_night() and absf(game._hours() - 6.5) < 0.1 and game.S["slept"] == 1)
+			# cook a kelp soup
+			var po = game._objs_of("pot")[0]
+			game.inv["water"] = 3; game.inv["cup"] = 3
+			game.P["x"] = 2.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			game._tap_smelter(po, pw())
+			check("cooking pot asks what to cook", game.sheet_mode == "smelt")
+			game._on_recipe("smelt_kelpsoup")
+			game._close_sheet()
+			check("kelp soup on the fire", po.slots.size() == 1 and game.inv["water"] == 2)
+			po.slots[0][0] = 0.05
+			# reinforce
+			game._set_build("reinforce")
+			check("every tile can be reinforced", game.ghosts.size() == game.tiles.size())
+			game._tap_ghost(Vector2i(0, 0))
+			game._set_build("")
+			check("tile reinforced", game.tiles[Vector2i(0, 0)].rf)
+			game.shark_on = true
+			game.shark.target = game.tiles[Vector2i(0, 0)]
+			game.shark.side = Vector2(0, -1)
+			game.shark.state = "bite"
+			game.shark.bite = 0.01
+			# fertilizer
+			var fl = game.tiles[Vector2i(4, 0)].obj
+			fl.spots[0].crop = "potato"; fl.moist = 1.0
+			game.P["x"] = 4.0 * Models.TILE; game.P["z"] = 0.0
+			game.farm.tap(fl, pw())
+			check("fertilizer on the field", fl.fert > 0.0 and game.inv["fert"] == 1)
+			# axe on an island palm
+			var tree = null
+			for n in game.islands[0].nodes:
+				if n.kind == "tree":
+					tree = n
+					break
+			tree.cd = 50.0
+			var w0: int = game.inv["wood"]
+			game._tap_island(tree, (tree.node as Node3D).global_position + Vector3(3, 0, 0))
+			check("stone axe chops a palm", game.inv["wood"] == w0 + 3 and tree.chop > 0.0)
+		1116:
+			check("kelp soup cooked", int(game._objs_of("pot")[0].done.get("kelpsoup", 0)) == 1)
+			game.P["x"] = 2.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			game._tap_smelter(game._objs_of("pot")[0], pw())
+			check("took the soup", game.inv["kelpsoup"] == 1 and game.S["potcooked"] == 1)
+			check("shark can't bite the reinforced tile", game.tiles[Vector2i(0, 0)].hp == 3 and game.shark.state == "flee")
+			check("the lighthouse island is out there", game.islands.size() == 5 and game._lighthouse().nodes.any(func(n): return n.kind == "lighthouse"))
+			check("radio and spyglass point the way", game.hud.nav.text.contains("燈塔島") and game.hud.nav.text.contains("望遠鏡"))
+			check("heal button hidden at full health", not game.hud.btn["heal"].visible)
+			game.game_t = 138.4
+		1120:
+			check("torch lights up at night", game._plight != null and game._plight.visible)
+			check("lantern lit at night", game._objs_of("lantern")[0].light.visible)
+			game._save_game()
+			game._reset()
+			game._load_game()
+			check("reinforcement and new pieces survive a save", game.tiles[Vector2i(0, 0)].rf and game._objs_of("radio").size() == 1 and game._objs_of("bed").size() == 1
+				and game.inv["flare"] == 1 and game.tiles[Vector2i(4, 0)].obj.fert > 0.0)
+			var lh = null
+			for n in game._lighthouse().nodes:
+				if n.kind == "lighthouse":
+					lh = n
+			game._tap_island(lh, (lh.node as Node3D).global_position + Vector3(30, 0, 0))
+			check("a flare at the lighthouse: rescued!", game.S["rescued"] == 1 and game.paused and game.hud.menu.visible and game.inv["flare"] == 0)
+			var g8: Array = game._goals()
+			check("rescue is the last goal", g8[g8.size() - 1][2])
+			game._on_action("keep_playing")
+			check("keep playing after the rescue", not game.paused and not game.hud.menu.visible)
 			print("AUTOTEST DONE, %d failures" % fails)
 			get_tree().quit()

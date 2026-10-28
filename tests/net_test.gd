@@ -109,7 +109,9 @@ func _ready() -> void:
 	eng.on = false
 
 	host.S["drank"] = 1; host.S["islands"] = 1
-	_ok(await _wait_for(func(): return cli._stage() == 2, 3.0), "friend builds at the host's stage (%d)" % cli._stage())
+	_ok(await _wait_for(func(): return cli._stage() == host._stage() and cli._stage() >= 1, 3.0), "friend builds at the host's stage (%d)" % cli._stage())
+	host._reinforce(host.tiles[Vector2i(0, 0)])
+	_ok(await _wait_for(func(): return cli.tiles[Vector2i(0, 0)].rf, 2.0), "host's reinforced floor is reinforced for the friend too")
 	print("shelter")
 	var key := ""
 	for c in host.tiles:

@@ -32,11 +32,26 @@ const ITEMS := {
 	"seed_potato": "馬鈴薯種子", "seed_tomato": "番茄種子", "seed_melon": "西瓜種子", "chicken": "雞", "goat": "山羊",
 	"shell": "貝殼幣", "bait": "魚餌", "rod2": "好釣竿",
 	"ingot": "金屬錠", "glass": "玻璃", "mhook": "金屬鉤子", "canteen": "水壺", "flippers": "蛙鞋", "o2tank": "氧氣瓶",
+	"hammer": "木槌", "bandage": "繃帶", "medkit": "急救包", "torch": "火把", "cloak": "遮陽斗篷", "armor": "竹甲", "marmor": "金屬甲",
+	"spyglass": "望遠鏡", "axe": "石斧", "fert": "肥料", "speargun": "魚槍", "headlamp": "潛水頭燈", "flare": "信號彈",
+	"fishsoup": "魚湯", "tomegg": "番茄炒蛋", "kelpsoup": "海帶湯", "pudding": "椰奶布丁",
 }
-const ORDER := ["shell", "bait", "rod2", "seed_potato", "seed_tomato", "seed_melon", "potato", "tomato", "melon", "kelp", "egg", "milk",
-	"bpotato", "fegg", "tjuice", "mjuice", "chicken", "goat", "wood", "plastic", "palm", "rope", "sand", "clay", "ore", "coconut", "rawfish", "cooked", "cup", "canteen", "water", "ingot", "glass", "spear", "mspear", "rod", "goggles", "mhook", "flippers", "o2tank"]
+const ORDER := ["shell", "flare", "bandage", "medkit", "fert", "fishsoup", "tomegg", "pudding", "kelpsoup", "bait", "rod2", "seed_potato", "seed_tomato", "seed_melon", "potato", "tomato", "melon", "kelp", "egg", "milk",
+	"bpotato", "fegg", "tjuice", "mjuice", "chicken", "goat", "wood", "plastic", "palm", "rope", "sand", "clay", "ore", "coconut", "rawfish", "cooked", "cup", "canteen", "water", "ingot", "glass", "spear", "mspear", "speargun", "rod", "goggles", "mhook", "flippers", "o2tank",
+	"hammer", "torch", "cloak", "armor", "marmor", "spyglass", "axe", "headlamp"]
 const CRAFT := [
 	{"id": "rope", "name": "繩子", "desc": "用來做工具和設備", "cost": {"palm": 2}, "give": {"rope": 1}},
+	{"id": "hammer", "name": "木槌", "desc": "點被鯊魚咬壞的地板，花 1 塊木板修好", "cost": {"wood": 3, "rope": 2}, "give": {"hammer": 1}, "once": true},
+	{"id": "bandage", "name": "繃帶", "desc": "生命 +30（按「治療」）", "cost": {"palm": 3, "rope": 1}, "give": {"bandage": 1}},
+	{"id": "bait", "name": "魚餌", "desc": "1 條生魚切成 3 個魚餌：釣竿和捕魚籠都用得到", "cost": {"rawfish": 1}, "give": {"bait": 3}},
+	{"id": "torch", "name": "火把", "desc": "天黑時自動點亮，照亮你身邊", "cost": {"wood": 2, "palm": 2, "coconut": 1}, "give": {"torch": 1}, "once": true},
+	{"id": "cloak", "name": "遮陽斗篷", "desc": "口渴變慢 15%", "cost": {"palm": 6, "rope": 2}, "give": {"cloak": 1}, "once": true},
+	{"id": "rod2", "name": "好釣竿", "desc": "魚上鉤更快，收竿時間更長", "cost": {"wood": 4, "rope": 4, "plastic": 2}, "give": {"rod2": 1}, "once": true},
+	{"id": "armor", "name": "竹甲", "desc": "被鯊魚咬的傷害 -35%", "cost": {"wood": 6, "palm": 6, "rope": 4}, "give": {"armor": 1}, "once": true},
+	{"id": "spyglass", "name": "望遠鏡", "desc": "左上角多顯示沉船和每座未探索小島的方向", "cost": {"plastic": 4, "wood": 2, "rope": 1}, "give": {"spyglass": 1}, "once": true},
+	{"id": "axe", "name": "石斧", "desc": "點小島上的棕櫚樹砍木頭（木板 ×3、棕櫚葉 ×2，每棵 45 秒一次）", "cost": {"wood": 3, "rope": 2, "ore": 1}, "give": {"axe": 1}, "once": true},
+	{"id": "fert", "name": "肥料", "desc": "點菜田施肥，那片作物 3 分鐘內長快一倍", "cost": {"kelp": 3}, "give": {"fert": 2}},
+	{"id": "medkit", "name": "急救包", "desc": "生命 +70", "cost": {"bandage": 2, "kelp": 2, "coconut": 1}, "give": {"medkit": 1}},
 	{"id": "cup", "name": "塑膠杯", "desc": "裝 1 杯淡水，杯子越多能帶越多水", "cost": {"plastic": 2}, "give": {"cup": 1}},
 	{"id": "spear", "name": "木矛", "desc": "點擊靠近的鯊魚刺牠，刺 3 下就會逃走", "cost": {"wood": 6, "rope": 2}, "give": {"spear": 1}, "once": true},
 	{"id": "rod", "name": "釣竿", "desc": "點木筏旁的海面拋竿，浮標下沉時按 R 收竿", "cost": {"wood": 4, "rope": 3}, "give": {"rod": 1}, "once": true},
@@ -46,6 +61,10 @@ const CRAFT := [
 	{"id": "canteen", "name": "水壺", "desc": "一個裝 3 杯淡水（跟塑膠杯一起算）", "cost": {"ingot": 1, "plastic": 3}, "give": {"canteen": 1}},
 	{"id": "flippers", "name": "蛙鞋", "desc": "游泳和潛水快 40%", "cost": {"plastic": 6, "rope": 2}, "give": {"flippers": 1}, "once": true},
 	{"id": "o2tank", "name": "氧氣瓶", "desc": "潛水的氧氣 +30 秒", "cost": {"ingot": 3, "plastic": 4, "glass": 1}, "give": {"o2tank": 1}, "once": true},
+	{"id": "speargun", "name": "魚槍", "desc": "11 公尺外就能射鯊魚，一發等於金屬矛；水裡也能用", "cost": {"ingot": 3, "rope": 2, "wood": 2}, "give": {"speargun": 1}, "once": true},
+	{"id": "headlamp", "name": "潛水頭燈", "desc": "水裡看得更遠，晚上潛水也看得到", "cost": {"ingot": 1, "glass": 1, "plastic": 2}, "give": {"headlamp": 1}, "once": true},
+	{"id": "marmor", "name": "金屬甲", "desc": "被鯊魚咬的傷害 -65%", "cost": {"ingot": 5, "rope": 2}, "give": {"marmor": 1}, "once": true},
+	{"id": "flare", "name": "信號彈", "desc": "到燈塔島點燈塔發射，讓人來救你", "cost": {"ingot": 1, "plastic": 2, "palm": 2}, "give": {"flare": 1}},
 	{"id": "tjuice", "name": "番茄汁", "desc": "口渴 +15、飢餓 +5", "cost": {"tomato": 2}, "give": {"tjuice": 1}},
 	{"id": "mjuice", "name": "西瓜汁", "desc": "口渴 +40", "cost": {"melon": 1}, "give": {"mjuice": 2}},
 	{"id": "bag30", "name": "帆布背包", "desc": "背包從 20 格擴到 30 格", "cost": {"palm": 10, "rope": 4}, "give": {}, "bag": 30},
@@ -84,25 +103,41 @@ const BUILD := [
 	{"id": "sprinkler", "name": "灑水器", "desc": "裝滿淡水後，自動幫周圍 2 格內的菜田澆水", "cost": {"ingot": 2, "plastic": 4, "glass": 1}},
 	{"id": "anchor", "name": "船錨", "desc": "點它下錨，木筏停在原地不漂走（漂流物還是會漂過來）", "cost": {"ingot": 3, "rope": 4}},
 	{"id": "engine", "name": "引擎", "desc": "燒木板推船，不管風向都能照船舵的方向前進；點它發動 / 熄火", "cost": {"ingot": 6, "plastic": 4, "rope": 2, "wood": 4}},
+	{"id": "bed", "name": "床", "desc": "天黑後點它睡到天亮（口渴飢餓會掉一點、生命回很多）；昏倒時會在床邊醒來", "cost": {"wood": 8, "palm": 6, "rope": 2}},
+	{"id": "table", "name": "桌椅組", "desc": "一張桌子兩張椅子，讓木筏像個家", "cost": {"wood": 6, "rope": 1}},
+	{"id": "lantern", "name": "椰油燈籠", "desc": "天黑時自動點亮，照亮周圍", "cost": {"wood": 2, "rope": 1, "coconut": 1}},
+	{"id": "flag", "name": "旗子", "desc": "插一面旗子，遠遠就看得到你的木筏", "cost": {"wood": 2, "plastic": 2}},
+	{"id": "flowerpot", "name": "花盆", "desc": "種點花，好看而已", "cost": {"clay": 2, "palm": 1}},
+	{"id": "pot", "name": "料理鍋", "desc": "把作物、蛋、羊奶煮成大餐：回復比烤的多，還能解渴", "cost": {"clay": 6, "wood": 4, "rope": 2}},
+	{"id": "bigchest", "name": "大儲物箱", "desc": "金屬箱子，背包容量 +24 格", "cost": {"ingot": 4, "wood": 6, "rope": 2}},
+	{"id": "reinforce", "name": "強化地板（每格）", "desc": "在地板底下釘金屬板，鯊魚咬不動", "cost": {"ingot": 2, "wood": 2}},
+	{"id": "radio", "name": "無線電", "desc": "收聽求救訊號，指出燈塔島的方向", "cost": {"ingot": 4, "glass": 2, "plastic": 4, "rope": 2}},
 ]
 ## Stages (like a tech tree): each unlocks a batch of recipes. [name, what unlocks it, what it brings]
 const STAGES := [
-	["漂流求生", "", "繩子、杯子、工具、地板、蒸餾杯、烤架、小屋"],
-	["木筏家園", "喝下第一杯蒸餾出來的淡水", "潛水鏡、船帆、船舵、二樓、集雨布"],
-	["探索海洋", "潛到海底挖到資源，或登上第一座小島", "種田、養殖、海洋夥伴、濾水缸、捕魚籠、熔爐"],
-	["金屬時代", "拿到第一塊金屬錠（熔爐煉，或跟商船買）", "金屬工具、收集網、淨水器、灑水器、船錨、引擎"],
+	["漂流求生", "", "繩子、木槌、繃帶、地板、小屋、蒸餾杯、烤架"],
+	["木筏家園", "喝下第一杯蒸餾出來的淡水", "潛水鏡、魚餌、火把、斗篷、床、桌椅、二樓、集雨布"],
+	["揚帆出航", "把木筏擴建到 8 格", "船帆、船舵、好釣竿、竹甲、望遠鏡、燈籠、旗子"],
+	["探索海洋", "潛到海底挖到資源，或登上第一座小島", "蛙鞋、石斧、果汁、菜田、養殖、濾水缸、捕魚籠"],
+	["農牧生活", "第一次收成作物，或撿到第一顆蛋", "料理鍋、肥料、急救包、花盆、熔爐、海豚和海龜的家"],
+	["金屬時代", "拿到第一塊金屬錠（熔爐煉，或跟商船買）", "金屬工具、水壺、收集網、淨水器、灑水器、船錨、大儲物箱"],
+	["機械航海", "熔爐累積煉出 8 塊金屬錠或玻璃", "引擎、強化地板、魚槍、潛水頭燈、金屬甲"],
+	["尋找救援", "去過 3 座小島", "無線電、信號彈：找到燈塔島，回家！"],
 ]
 ## Which stage each craft / build recipe belongs to (missing = stage 0).
 const TIER := {
-	"goggles": 1, "upper": 1, "stairs": 1, "rail": 1, "sail": 1, "helm": 1, "catcher": 1,
-	"flippers": 2, "tjuice": 2, "mjuice": 2, "bag40": 2, "field": 2, "kelpfarm": 2, "coop": 2, "pen": 2, "filter": 2,
-	"gullnest": 2, "dolphinpost": 2, "turtletank": 2, "fishtrap": 2, "smelter": 2,
-	"mspear": 3, "mhook": 3, "canteen": 3, "o2tank": 3, "bag50": 3,
-	"colnet": 3, "purifier": 3, "bgrill": 3, "sprinkler": 3, "anchor": 3, "engine": 3,
+	"goggles": 1, "bait": 1, "torch": 1, "cloak": 1, "bag30": 1, "upper": 1, "stairs": 1, "rail": 1, "catcher": 1, "bed": 1, "table": 1,
+	"rod2": 2, "armor": 2, "spyglass": 2, "sail": 2, "helm": 2, "lantern": 2, "flag": 2,
+	"flippers": 3, "tjuice": 3, "mjuice": 3, "axe": 3, "bag40": 3, "field": 3, "kelpfarm": 3, "coop": 3, "pen": 3, "filter": 3, "gullnest": 3, "fishtrap": 3,
+	"fert": 4, "medkit": 4, "pot": 4, "flowerpot": 4, "smelter": 4, "dolphinpost": 4, "turtletank": 4,
+	"mspear": 5, "mhook": 5, "canteen": 5, "o2tank": 5, "colnet": 5, "purifier": 5, "bgrill": 5, "sprinkler": 5, "anchor": 5, "bigchest": 5,
+	"speargun": 6, "headlamp": 6, "marmor": 6, "bag50": 6, "engine": 6, "reinforce": 6,
+	"flare": 7, "radio": 7,
 }
 const SEA_KINDS := ["kelpfarm", "colnet", "fishtrap"]   ## built on the water beside the raft, not on the deck
 const OBJ_NAME := {"still": "蒸餾杯", "grill": "烤架", "sail": "船帆", "helm": "船舵", "chest": "儲物箱", "filter": "陶瓷濾水缸", "field": "菜田", "kelpfarm": "海藻養殖架", "coop": "雞舍", "pen": "山羊圍欄", "stairs": "樓梯", "catcher": "集雨布", "gullnest": "海鷗巢", "dolphinpost": "海豚韁繩柱", "turtletank": "海龜水槽",
 	"smelter": "熔爐", "colnet": "收集網", "fishtrap": "捕魚籠", "purifier": "進階淨水器", "bgrill": "金屬烤架", "sprinkler": "灑水器", "anchor": "船錨", "engine": "引擎",
+	"bed": "床", "table": "桌椅組", "lantern": "燈籠", "flag": "旗子", "flowerpot": "花盆", "pot": "料理鍋", "bigchest": "大儲物箱", "radio": "無線電",
 	"wall": "牆", "window": "窗牆", "door": "門", "pillar": "支柱", "upper": "二樓地板", "rail": "欄杆", "roof": "屋頂"}
 ## crop: [seed item, grow seconds (prototype speed), harvest item, harvest count]
 const CROPS := {"potato": ["seed_potato", 120.0, "potato", 3], "tomato": ["seed_tomato", 90.0, "tomato", 4], "melon": ["seed_melon", 180.0, "melon", 1]}
@@ -113,8 +148,16 @@ const GRILL := {"rawfish": ["cooked", "烤魚"], "potato": ["bpotato", "烤馬�
 const GRILLS := {"grill": [15.0, 2], "bgrill": [8.0, 4]}
 ## stills: [seconds per cup, cups it holds, seconds of fire per plank]
 const STILLS := {"still": [20.0, 2, 40.0], "purifier": [8.0, 5, 90.0]}
-## smelter: raw item -> [product, raw per batch, seconds]; every batch also burns 1 plank
-const SMELT := {"ore": ["ingot", 1, 20.0], "sand": ["glass", 2, 15.0]}
+## work stations (smelter, cooking pot): recipe id -> {in: items, out: product, sec}; every batch also burns 1 plank
+const STATIONS := {
+	"smelter": {"ore": {"in": {"ore": 1}, "out": "ingot", "sec": 20.0}, "sand": {"in": {"sand": 2}, "out": "glass", "sec": 15.0}},
+	"pot": {
+		"fishsoup": {"in": {"rawfish": 1, "potato": 1, "water": 1}, "out": "fishsoup", "sec": 20.0},
+		"tomegg": {"in": {"egg": 2, "tomato": 1}, "out": "tomegg", "sec": 15.0},
+		"kelpsoup": {"in": {"kelp": 2, "water": 1}, "out": "kelpsoup", "sec": 15.0},
+		"pudding": {"in": {"milk": 1, "egg": 1, "coconut": 1}, "out": "pudding", "sec": 25.0},
+	},
+}
 const SMELT_SLOTS := 4
 const NET_HOLD := 12         ## pieces of debris one collection net holds
 const TRAP_SEC := 75.0       ## a fish trap catches a fish this often (half with bait)
@@ -122,8 +165,10 @@ const TRAP_HOLD := 3
 const ENGINE_FUEL := 60.0    ## seconds of engine per plank
 const ENGINE_MAX := 300.0
 const SPRINKLE_HOLD := 8
+const HEAL := {"bandage": 30, "medkit": 70}
+const LIGHTHOUSE_D := 520.0  ## how far out the lighthouse island is
 ## food: [hunger, thirst]
-const FOOD := {"cooked": [38, 0], "fegg": [25, 0], "coconut": [22, 8], "bpotato": [20, 0], "rawfish": [12, 0], "potato": [8, 0], "tomato": [6, 4]}
+const FOOD := {"fishsoup": [55, 25], "tomegg": [50, 5], "pudding": [40, 15], "kelpsoup": [22, 30], "cooked": [38, 0], "fegg": [25, 0], "coconut": [22, 8], "bpotato": [20, 0], "rawfish": [12, 0], "potato": [8, 0], "tomato": [6, 4]}
 ## drink: [thirst, hunger]
 const DRINK := {"water": [35, 0], "mjuice": [40, 0], "milk": [20, 15], "tjuice": [15, 5]}
 ## skill id: [name, how it is trained, what each level gives]
@@ -139,7 +184,9 @@ const SKILLS := {
 ## how many of an item fit in one backpack slot (water lives in the cups, so it takes none)
 const STACK := {"shell": 999, "bait": 20, "rod2": 1, "potato": 10, "tomato": 10, "melon": 5, "kelp": 20, "egg": 10, "milk": 5, "bpotato": 10, "fegg": 10,
 	"tjuice": 5, "mjuice": 5, "seed_potato": 20, "seed_tomato": 20, "seed_melon": 20, "chicken": 6, "goat": 3, "sand": 20, "clay": 20, "ore": 20, "goggles": 1, "mspear": 1, "wood": 20, "plastic": 20, "palm": 20, "rope": 20, "coconut": 10, "rawfish": 10, "cooked": 10, "cup": 10, "spear": 1, "rod": 1,
-	"ingot": 20, "glass": 20, "mhook": 1, "canteen": 5, "flippers": 1, "o2tank": 1}
+	"ingot": 20, "glass": 20, "mhook": 1, "canteen": 5, "flippers": 1, "o2tank": 1,
+	"hammer": 1, "bandage": 10, "medkit": 5, "torch": 1, "cloak": 1, "armor": 1, "marmor": 1, "spyglass": 1, "axe": 1, "fert": 20,
+	"speargun": 1, "headlamp": 1, "flare": 5, "fishsoup": 5, "tomegg": 5, "kelpsoup": 5, "pudding": 5}
 const MODES := {"peaceful": "和平", "standard": "標準", "hardcore": "硬派", "creative": "創造"}
 const BAG_TTL := 600.0
 const DEBRIS := {
@@ -232,7 +279,10 @@ var wake_t := 0.0
 var build_mode := ""
 var sheet_mode := ""
 var goals_done := 0
-var _host_stage := 0       ## a friend's game: the host's stage (friends build in the same world)
+var _host_stage := 0
+var _night := false          ## lanterns and the torch are lit
+var _plight: OmniLight3D     ## the castaway's torch / dive lamp
+var _lamp_beam: Node3D       ## the lighthouse's turning beam       ## a friend's game: the host's stage (friends build in the same world)
 var _drag := {}
 var _touches := {}       ## finger index -> {start, pos, t, moved, multi}
 var _pinch := 0.0
@@ -369,12 +419,27 @@ func _setup_islands() -> void:
 		for n in isl.nodes:
 			n["island"] = isl
 		islands.append(isl)
+	# far out: the lighthouse island, the way home (the last island in the list)
+	var la: float = ocean.wind + 0.55
+	var lm := Models.island(11.0)
+	var ln: Node3D = lm.node
+	ln.position = Vector3(1.0 + cos(la) * LIGHTHOUSE_D, 0.0, 1.0 + sin(la) * LIGHTHOUSE_D)
+	add_child(ln)
+	var tower := Models.lighthouse()
+	tower.position = Vector3(-3.3, Models.island_h(4.67, 11.0) - 0.25, 3.3)   # clear of the palms
+	ln.add_child(tower)
+	var lisl := {"x": ln.position.x, "z": ln.position.z, "r": 11.0, "node": ln, "nodes": lm.nodes, "visited": false, "bump": 0.0}
+	lisl.nodes.append({"kind": "lighthouse", "node": tower, "used": false, "hit": Vector3(0, 7.0, 0)})
+	for n in lisl.nodes:
+		n["island"] = lisl
 	var gi: Dictionary = islands[2]
 	var gn := Models.goat()
 	gn.position = Vector3(-gi.r * 0.35, Models.island_h(gi.r * 0.46, gi.r) - 0.2 + 0.05, gi.r * 0.3)
 	gn.rotation.y = 0.8
 	gi.node.add_child(gn)
 	gi.nodes.append({"kind": "goat", "node": gn, "used": false, "hit": Vector3(0, 0.6, 0), "island": gi})
+	islands.append(lisl)
+	_lamp_beam = tower.get_node("Beam")
 
 
 ## Sea-floor height: shallow shelves around each island, open ocean far below.
@@ -553,7 +618,7 @@ func _reset() -> void:
 	inv["wood"] = 2
 	inv["plastic"] = 1
 	S = {"thirst": 75.0, "hunger": 85.0, "health": 100.0, "wood_hooked": 0, "rope_made": 0,
-		"still_built": 0, "drank": 0, "fished": 0, "ate_cooked": 0, "repelled": 0, "islands": 0, "bag": 20, "dug": 0, "harvested": 0, "eggs": 0, "bred": 0, "trades": 0, "built_house": 0, "pets": 0, "smelted": 0, "netted": 0}
+		"still_built": 0, "drank": 0, "fished": 0, "ate_cooked": 0, "repelled": 0, "islands": 0, "bag": 20, "dug": 0, "harvested": 0, "eggs": 0, "bred": 0, "trades": 0, "built_house": 0, "pets": 0, "smelted": 0, "netted": 0, "slept": 0, "potcooked": 0, "rescued": 0}
 	skills = {}
 	for k in SKILLS:
 		skills[k] = {"lv": 0, "xp": 0}
@@ -629,8 +694,19 @@ func _add_tile(c: Vector2i) -> void:
 	var bases := []
 	for m in mats:
 		bases.append(m.albedo_color)
-	tiles[c] = {"cell": c, "node": node, "mats": mats, "bases": bases, "hp": 3, "obj": null, "shake": 0.0}
+	tiles[c] = {"cell": c, "node": node, "mats": mats, "bases": bases, "hp": 3, "obj": null, "shake": 0.0, "rf": false}
 	_update_mask()
+
+
+## Metal plates under a tile: the shark can't bite through it.
+func _reinforce(t: Dictionary) -> void:
+	if t.rf:
+		return
+	t.rf = true
+	t.hp = 3
+	_tint(t)
+	var band := Models.reinforce_plate()
+	t.node.add_child(band)
 
 
 func _remove_tile(t: Dictionary, quiet := false) -> void:
@@ -819,6 +895,22 @@ func _place(kind: String, t: Dictionary) -> void:
 			m = Models.anchor()
 		"engine":
 			m = Models.engine()
+		"bed":
+			m = Models.bed()
+		"table":
+			m = Models.table_set()
+		"lantern":
+			m = Models.lantern()
+		"flag":
+			m = Models.flag()
+		"flowerpot":
+			m = Models.flowerpot()
+		"pot":
+			m = Models.cook_pot()
+		"bigchest":
+			m = Models.big_chest()
+		"radio":
+			m = Models.radio()
 		_:
 			m = Models.helm()
 	var node: Node3D = m.node
@@ -839,7 +931,7 @@ func _place(kind: String, t: Dictionary) -> void:
 			o["water"] = 0
 			o["prog"] = 0.0
 			o["label"] = _label3d(node)
-		"grill", "bgrill", "smelter":
+		"grill", "bgrill", "smelter", "pot":
 			o["slots"] = []
 			o["done"] = {}
 			o["label"] = _label3d(node)
@@ -863,6 +955,9 @@ func _place(kind: String, t: Dictionary) -> void:
 			o["on"] = false
 			o["fuel"] = 0.0
 			o["label"] = _label3d(node)
+		"radio":
+			o["label"] = _label3d(node)
+			o.label.position.y = 1.5
 	t.obj = o
 	objs.append(o)
 	if Farm.is_farm(kind):
@@ -964,7 +1059,7 @@ func _slots_used(extra := {}) -> int:
 
 
 func _capacity() -> int:
-	return int(S["bag"]) + 12 * _objs_of("chest").size()
+	return int(S["bag"]) + 12 * _objs_of("chest").size() + 24 * _objs_of("bigchest").size()
 
 
 func _fits(items: Dictionary) -> bool:
@@ -1145,7 +1240,7 @@ func _cost_text(cost: Dictionary) -> String:
 
 
 func _next_food() -> String:
-	for k in ["cooked", "fegg", "coconut", "bpotato", "rawfish", "potato", "tomato"]:
+	for k in ["fishsoup", "tomegg", "pudding", "cooked", "kelpsoup", "fegg", "coconut", "bpotato", "rawfish", "potato", "tomato"]:
 		if inv[k] > 0:
 			return k
 	return ""
@@ -1197,14 +1292,19 @@ func _goals() -> Array:
 		["做潛水鏡，潛到海底挖到資源", _k("合成 → 潛水鏡，按 F 下水、Shift 下潛", "合成 → 潛水鏡，按下水、按住下潛"), S["dug"] >= 1],
 		["種下種子並收成一次", "建造 → 菜田（要黏土），一格一格鋪，種下種子、澆淡水", S["harvested"] >= 1],
 		["蓋一間有屋頂的小屋", "建造 → 牆、門、屋頂：讓 2 格以上的地板有東西遮著", S["built_house"] >= 1],
+		["蓋一張床，晚上睡一覺", "建造 → 床，天黑以後點它", S["slept"] >= 1],
 		["收服一隻海洋夥伴", "第一座小島上空有海鷗：開船過去，餵牠 3 次生魚", S["pets"] >= 1],
 		["跟商船做一次交易", "商船會不定時靠過來，點它用貝殼幣買賣（貝殼幣：賣東西、潛水挖、開木箱）", S["trades"] >= 1],
 		["養雞撿到第一顆蛋", "用鉤子撈漂來的雞籠，蓋雞舍、餵海帶", S["eggs"] >= 1],
+		["用料理鍋煮一道菜", "建造 → 料理鍋，點它選菜（例如海帶 ×2＋淡水 = 海帶湯）", S["potcooked"] >= 1],
 		["揚帆航行到第一座小島", "升帆、掌舵，跟著左上角的箭頭走" if has_rig else "建造 → 船帆和船舵", S["islands"] >= 1],
 		["蓋熔爐，煉出第一塊金屬錠", "建造 → 熔爐（黏土、沙），放潛水挖到的金屬礦和木板進去", S["smelted"] >= 1],
 		["做一支金屬鉤子", "合成 → 金屬鉤子：撿得更遠、收得更快", inv["mhook"] > 0],
 		["用收集網自動撈到漂流物", "建造 → 收集網，放在木筏旁漂流物漂過來的海面", S["netted"] >= 1],
 		["裝上引擎，不靠風開船", "建造 → 引擎，點它加木板發動，再去掌舵", not _objs_of("engine").is_empty() and _objs_of("engine").any(func(x): return x.on or x.fuel > 0.0)],
+		["強化一格地板，讓鯊魚咬不動", "建造 → 強化地板，點木筏邊緣的地板", tiles.values().any(func(t): return t.rf)],
+		["蓋無線電，收到求救訊號", "建造 → 無線電（去過 3 座小島才解鎖）", not _objs_of("radio").is_empty()],
+		["到燈塔島發射信號彈，獲救！", "跟著無線電的訊號開過去，點燈塔發射信號彈", S["rescued"] >= 1],
 	]
 
 
@@ -1213,12 +1313,12 @@ func _stage() -> int:
 	if creative:
 		return STAGES.size() - 1
 	var now := 0
-	if S["drank"] >= 1:
-		now = 1
-		if S["dug"] >= 1 or S["islands"] >= 1:
-			now = 2
-			if S["smelted"] >= 1 or inv["ingot"] > 0:
-				now = 3
+	var steps := [S["drank"] >= 1, tiles.size() >= 8, S["dug"] >= 1 or S["islands"] >= 1, S["harvested"] >= 1 or S["eggs"] >= 1,
+		S["smelted"] >= 1 or inv["ingot"] > 0, S["smelted"] >= 8, S["islands"] >= 3]
+	for ok in steps:
+		if not ok:
+			break
+		now += 1
 	return maxi(maxi(now, int(S.get("stage", 0))), _host_stage if is_client() else 0)
 
 
@@ -1330,13 +1430,19 @@ func _open_sheet(mode: String) -> void:
 		var sm = get_meta("smelting") if has_meta("smelting") else null
 		if sm == null or not objs.has(sm):
 			return
-		for raw in SMELT:
-			var sp: Array = SMELT[raw]
-			rows.append({"id": "smelt_" + raw, "name": "%s → %s" % [ITEMS[raw], ITEMS[sp[0]]],
-				"desc": "%s ×%d ＋ 木板 ×1，%d 秒（你有 %s %d）" % [ITEMS[raw], sp[1], int(sp[2]), ITEMS[raw], inv[raw]],
-				"cost_text": "爐裡 %d / %d" % [sm.slots.size(), SMELT_SLOTS],
-				"ok": (creative or (inv[raw] >= sp[1] and inv["wood"] >= 1)) and sm.slots.size() < SMELT_SLOTS, "label": "放進去"})
-		hud.show_sheet("熔爐：煉什麼？（可以連按）", rows)
+		var recs: Dictionary = STATIONS[sm.kind]
+		for rid in recs:
+			var rc: Dictionary = recs[rid]
+			var need: Dictionary = rc["in"].duplicate()
+			need["wood"] = int(need.get("wood", 0)) + 1
+			var what := ""
+			if rc.out in FOOD:
+				what = "，飢餓 +%d、口渴 +%d" % [FOOD[rc.out][0], FOOD[rc.out][1]]
+			rows.append({"id": "smelt_" + rid, "name": "%s → %s" % [_cost_text(rc["in"]), ITEMS[rc.out]],
+				"desc": "再燒 1 塊木板，%d 秒%s" % [int(rc.sec), what],
+				"cost_text": "裡面 %d / %d 份" % [sm.slots.size(), SMELT_SLOTS],
+				"ok": (creative or _has(need)) and sm.slots.size() < SMELT_SLOTS, "label": "放進去"})
+		hud.show_sheet(("熔爐：煉什麼？" if sm.kind == "smelter" else "料理鍋：煮什麼？") + "（可以連按）", rows)
 	elif mode == "pets":
 		rows = companions.sheet_rows()
 		if rows.is_empty():
@@ -1425,6 +1531,11 @@ func _on_action(id: String) -> void:
 			paused = false
 		"eat":
 			_eat()
+		"heal":
+			_heal()
+		"keep_playing":
+			hud.hide_menu()
+			paused = false
 		"drink":
 			_drink()
 		"reel":
@@ -1571,6 +1682,8 @@ func _set_build(mode: String) -> void:
 		hud.show_build_bar("點橘色格子蓋地板（%s）" % _cost_text(BUILD[0].cost))
 	elif mode == "demolish":
 		hud.show_build_bar("點紅色的設備或地板拆除，退回一半材料")
+	elif mode == "reinforce":
+		hud.show_build_bar("點橘色的地板強化（每格 %s），鯊魚就咬不動" % _cost_text(_build_cost(_build_def("reinforce").cost)))
 	else:
 		var r := _build_def(mode)
 		if Shelter.is_mode(mode):
@@ -1632,6 +1745,10 @@ func _refresh_ghosts() -> void:
 		for t in tiles.values():
 			if t.obj == null and _stairs_dir(t.cell) != Vector2i.ZERO:
 				_add_ghost(t.cell, _ghost_mat, false)
+	elif build_mode == "reinforce":
+		for t in tiles.values():
+			if not t.rf:
+				_add_ghost(t.cell, _ghost_mat, false, 0.16)
 	elif build_mode != "":
 		for t in tiles.values():
 			if t.obj == null:
@@ -1681,6 +1798,12 @@ func _tap_ghost(c: Vector2i) -> void:
 	_pay(cost)
 	_gain("build", 2)
 	sfx.play("build")
+	if build_mode == "reinforce":
+		_reinforce(tiles[c])
+		hud.toast("這格地板強化了，鯊魚咬不動（繼續點其他格，按完成結束）")
+		_refresh_ghosts()
+		_refresh_inv()
+		return
 	if build_mode == "floor":
 		_add_tile(c)
 		hud.toast("蓋好 1 格地板")
@@ -1717,6 +1840,18 @@ func _tap_ghost(c: Vector2i) -> void:
 				hud.toast("船錨裝好了，點它下錨或起錨")
 			"engine":
 				hud.toast("引擎裝好了，點它加木板發動")
+			"bed":
+				hud.toast("床放好了，天黑以後點它睡覺")
+			"pot":
+				hud.toast("料理鍋蓋好了，點它選要煮什麼")
+			"bigchest":
+				hud.toast("大儲物箱放好了，背包容量 +24 格")
+			"lantern":
+				hud.toast("燈籠掛好了，天黑會自動點亮")
+			"radio":
+				var lh := _lighthouse()
+				var c0 := _raft_center()
+				hud.toast("無線電收到求救訊號！燈塔島在 %s %d 公尺外" % [_arrow_to(lh.x - c0.x, lh.z - c0.z), roundi(Vector2(lh.x - c0.x, lh.z - c0.z).length())])
 		if build_mode == "stairs":
 			_aim_stairs(tiles[c].obj)
 			hud.toast("樓梯蓋好了，點它上樓")
@@ -1766,6 +1901,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		match e.keycode:
 			KEY_E:
 				_eat()
+			KEY_H:
+				_heal()
 			KEY_Q:
 				_drink()
 			KEY_R:
@@ -1865,6 +2002,10 @@ func _pick(screen: Vector2) -> Dictionary:
 		cands += companions.pick_cands(true)
 		return _nearest_hit(cands, o, d)
 	cands += companions.pick_cands(false)
+	if inv["hammer"] > 0 and build_mode == "":
+		for t in tiles.values():
+			if t.hp < 3:
+				cands.append(["tile", t, (t.node as Node3D).global_position + Vector3(0, 0.1, 0), TILE * 0.45])
 	if traders.boat != null:
 		cands.append(["trader", traders.boat, (traders.boat.node as Node3D).global_position + Vector3(0, 1.0, 0), 2.6])
 	for ob in objs:
@@ -1932,8 +2073,14 @@ func _tap(pos: Vector2) -> void:
 			_tap_still(hit.ref, pw)
 		"grill", "bgrill":
 			_tap_grill(hit.ref, pw)
-		"smelter":
+		"smelter", "pot":
 			_tap_smelter(hit.ref, pw)
+		"bed":
+			_tap_bed(hit.ref, pw)
+		"radio":
+			_tap_radio(hit.ref, pw)
+		"tile":
+			_repair(hit.ref, pw)
 		"colnet":
 			_tap_colnet(hit.ref, pw)
 		"fishtrap":
@@ -2080,12 +2227,33 @@ func _exit_steer() -> void:
 
 func _tap_island(n: Dictionary, pw: Vector3) -> void:
 	var w: Vector3 = (n.node as Node3D).global_position
+	if n.kind == "lighthouse":
+		if _flat(pw, w.x, w.z) > 45.0:
+			hud.toast("再靠近燈塔一點")
+			return
+		if S["rescued"] >= 1:
+			hud.toast("燈塔看守人對你揮手")
+		elif inv["flare"] > 0:
+			inv["flare"] -= 1
+			_rescued()
+		else:
+			hud.toast("燈塔上有人影！發射信號彈讓他們看到你（合成 → 信號彈）")
+		return
 	if _flat(pw, w.x, w.z) > 17.0:
 		hud.toast("再靠近小島一點才搆得到")
 		return
 	if n.kind == "tree":
 		if n.cd > 0.0:
-			hud.toast("椰子還沒長回來（%d 秒）" % ceili(n.cd))
+			if inv["axe"] > 0 and float(n.get("chop", 0.0)) <= 0.0:
+				if not _fits({"wood": 3, "palm": 2}):
+					_full_toast()
+					return
+				n["chop"] = 45.0
+				hud.toast("用石斧砍下 " + _give({"wood": 3, "palm": 2}))
+				sfx.play("build")
+				_refresh_inv()
+				return
+			hud.toast("椰子還沒長回來（%d 秒）" % ceili(n.cd) + ("，這棵樹也剛砍過" if inv["axe"] > 0 else ""))
 			return
 		if not _fits({"coconut": 2, "palm": 3}):
 			_full_toast()
@@ -2124,17 +2292,18 @@ func _tap_island(n: Dictionary, pw: Vector3) -> void:
 
 
 func _tap_shark(pw: Vector3) -> void:
-	if inv["spear"] < 1 and inv["mspear"] < 1:
+	if inv["spear"] < 1 and inv["mspear"] < 1 and inv["speargun"] < 1:
 		hud.toast("你需要木矛才能反擊（合成 → 木矛）")
 		return
 	if shark.state == "circle" or shark.state == "flee":
 		hud.toast("牠還在繞圈，等牠靠近再刺")
 		return
-	if _flat(pw, shark.x, shark.z) > SPEAR_REACH:
+	var reach := 11.0 if inv["speargun"] > 0 else SPEAR_REACH
+	if _flat(pw, shark.x, shark.z) > reach:
 		hud.toast("再靠近一點才刺得到")
 		return
 	var double := randf() < 0.08 * _lv("combat")
-	var dmg := (2 if inv["mspear"] > 0 else 1) + (1 if double else 0)
+	var dmg := (2 if inv["mspear"] > 0 or inv["speargun"] > 0 else 1) + (1 if double else 0)
 	_gain("combat", 2)
 	if double:
 		hud.toast("用力一刺！")
@@ -2192,41 +2361,48 @@ func _tap_filter(o: Dictionary, pw: Vector3) -> void:
 # ---------------------------------------------------------------- upgrades
 
 func _tap_smelter(o: Dictionary, pw: Vector3) -> void:
-	if not _near(o, pw, "用熔爐"):
+	if not _near(o, pw, "用" + OBJ_NAME[o.kind]):
 		return
 	if not o.done.is_empty():
 		if not _fits(o.done):
 			_full_toast()
 			return
-		S["smelted"] += int(o.done.get("ingot", 0)) + int(o.done.get("glass", 0))
-		hud.toast("從熔爐拿到 " + _give(o.done))
+		var n_done := 0
+		for k in o.done:
+			n_done += int(o.done[k])
+		if o.kind == "smelter":
+			S["smelted"] += n_done
+		else:
+			S["potcooked"] += n_done
+			_gain("cook", 2 * n_done)
+		hud.toast("從%s拿到 " % OBJ_NAME[o.kind] + _give(o.done))
 		sfx.play("craft")
 		o.done = {}
 		_refresh_inv()
 		return
 	if o.slots.size() >= SMELT_SLOTS:
-		hud.toast("熔爐滿了，等它煉好")
+		hud.toast("%s滿了，等它好" % OBJ_NAME[o.kind])
 		return
 	set_meta("smelting", o)
 	_set_build("")
 	_open_sheet("smelt")
 
 
-func _smelt(o: Dictionary, raw: String) -> void:
-	if not SMELT.has(raw) or not objs.has(o):
+func _smelt(o: Dictionary, rid: String) -> void:
+	if not objs.has(o) or not STATIONS.get(o.kind, {}).has(rid):
 		return
-	var sp: Array = SMELT[raw]
+	var rc: Dictionary = STATIONS[o.kind][rid]
 	if o.slots.size() >= SMELT_SLOTS:
-		hud.toast("熔爐滿了（最多 %d 份）" % SMELT_SLOTS)
+		hud.toast("%s滿了（最多 %d 份）" % [OBJ_NAME[o.kind], SMELT_SLOTS])
 		return
-	if not creative and (inv[raw] < sp[1] or inv["wood"] < 1):
-		hud.toast("需要 %s ×%d 和 1 塊木板當柴火" % [ITEMS[raw], sp[1]])
+	var need: Dictionary = rc["in"].duplicate()
+	need["wood"] = int(need.get("wood", 0)) + 1
+	if not _has(need):
+		hud.toast("需要 " + _cost_text(need))
 		return
-	if not creative:
-		inv[raw] -= sp[1]
-		inv["wood"] -= 1
-	o.slots.append([sp[2], raw])
-	hud.toast("放進熔爐：%s ×%d，%d 秒後變成%s" % [ITEMS[raw], sp[1], int(sp[2]), ITEMS[sp[0]]])
+	_pay(need)
+	o.slots.append([rc.sec, rid])
+	hud.toast("放進%s：%s，%d 秒後變成%s" % [OBJ_NAME[o.kind], _cost_text(rc["in"]), int(rc.sec), ITEMS[rc.out]])
 	sfx.play("build", null, -8.0)
 	_refresh_inv()
 
@@ -2318,6 +2494,113 @@ func _tap_engine(o: Dictionary, pw: Vector3) -> void:
 	hud.toast("引擎發動！%s燃料 %d 秒%s" % [("加了 %d 塊木板，" % planks) if planks > 0 else "", ceili(o.fuel),
 		"，去船舵掌舵" if not _objs_of("helm").is_empty() else "，沒有船舵會直直往前開"])
 	_refresh_inv()
+
+
+func _repair(t: Dictionary, pw: Vector3) -> void:
+	if not _near(t, pw, "修理地板"):
+		return
+	if inv["wood"] < 1 and not creative:
+		hud.toast("修地板要 1 塊木板")
+		return
+	if not creative:
+		inv["wood"] -= 1
+	t.hp = 3
+	t.shake = 0.2
+	_tint(t)
+	_gain("build", 1)
+	sfx.play("build")
+	hud.toast("用木槌把地板修好了")
+	_refresh_inv()
+
+
+func _hours() -> float:
+	var phase := fmod(game_t + DAY_LEN * 0.09, DAY_LEN) / DAY_LEN
+	return fmod(6.0 + phase * 24.0, 24.0)
+
+
+func _is_night() -> bool:
+	var h := _hours()
+	return h >= 19.0 or h < 5.0
+
+
+func _tap_bed(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "睡覺"):
+		return
+	if net.in_room():
+		hud.toast("跟朋友連線時大家的時間是一起的，不能自己睡到天亮")
+		return
+	if not _is_night():
+		hud.toast("還不睏，天黑以後再來睡（昏倒時也會在床邊醒來）")
+		return
+	var skip := fposmod(6.5 - _hours(), 24.0)
+	game_t += skip / 24.0 * DAY_LEN
+	S["thirst"] = maxf(5.0, S["thirst"] - 12.0)
+	S["hunger"] = maxf(5.0, S["hunger"] - 8.0)
+	S["health"] = minf(100.0, S["health"] + 35.0)
+	S["slept"] += 1
+	_exit_steer()
+	_end_fishing()
+	sfx.play("catch", null, -8.0, 0.0)
+	hud.toast("睡了一覺，天亮了。生命 +35，口渴和飢餓掉了一點")
+	_refresh_inv()
+
+
+func _tap_radio(o: Dictionary, pw: Vector3) -> void:
+	var lh := _lighthouse()
+	var c0 := _raft_center()
+	var d := Vector2(lh.x - c0.x, lh.z - c0.z)
+	hud.toast("「……這裡是燈塔……有人嗎……」訊號從 %s 方向傳來，大約 %d 公尺" % [_arrow_to(d.x, d.y), roundi(d.length())])
+	sfx.play("reel", null, -6.0)
+
+
+## The lighthouse island (the last one in the list).
+func _lighthouse() -> Dictionary:
+	return islands[islands.size() - 1]
+
+
+func _heal() -> void:
+	if paused or over:
+		return
+	var k := ""
+	if inv["medkit"] > 0 and (S["health"] <= 40.0 or inv["bandage"] == 0):
+		k = "medkit"
+	elif inv["bandage"] > 0:
+		k = "bandage"
+	if k == "":
+		hud.toast("沒有繃帶或急救包（合成 → 繃帶）")
+		return
+	if S["health"] >= 100.0:
+		hud.toast("生命是滿的")
+		return
+	inv[k] -= 1
+	S["health"] = minf(100.0, S["health"] + HEAL[k])
+	sfx.play("craft", null, -6.0)
+	hud.toast("用了%s：生命 +%d" % [ITEMS[k], HEAL[k]])
+	_refresh_inv()
+
+
+## How much of a shark bite gets through the armour.
+func _armor_k() -> float:
+	if inv["marmor"] > 0:
+		return 0.35
+	if inv["armor"] > 0:
+		return 0.65
+	return 1.0
+
+
+func _rescued() -> void:
+	S["rescued"] = 1
+	var days := int((game_t + DAY_LEN * 0.09) / DAY_LEN) + 1
+	paused = true
+	_exit_steer()
+	_end_fishing()
+	_set_build("")
+	_close_sheet()
+	sfx.play("catch", null, 0.0, 0.0)
+	_save_game()
+	hud.show_menu("信號彈在燈塔上空炸開，紅光照亮了海面", "你得救了！",
+		"漂流了 %d 天、木筏 %d 格、去過 %d 座小島，燈塔的人划著小船來接你了。\n\n恭喜通關《瘋狂水世界》！想的話可以繼續漂流，把木筏蓋得更大。" % [days, tiles.size(), int(S["islands"])],
+		[["keep_playing", "繼續漂流", true]])
 
 
 ## Host: a collection net catches drifting debris that floats into it.
@@ -2746,8 +3029,14 @@ func _process(delta: float) -> void:
 	shark_rig.flash(shark.flash > 0.0)
 
 	# props that animate even when paused
+	if _lamp_beam != null:
+		_lamp_beam.rotation.y = wall_t * 0.8
+		_lamp_beam.visible = _night or weather.cloud > 0.5
 	for o in objs:
 		match o.kind:
+			"lantern":
+				o.light.visible = _night
+				o.flame.visible = _night
 			"sail":
 				o.rig.rotation.y = atan2(cos(wind), sin(wind))
 				var k := 1.0 if o.up else 0.12
@@ -2810,9 +3099,21 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	cam.look_at(cam_target, Vector3.UP)
 	var cam_under := cp.y < ocean.height(cp.x, cp.z) - 0.05
 	seabed_root.visible = cam_under or swim != null
+	_night = nk > 0.35
+	if _plight == null:
+		_plight = OmniLight3D.new()
+		_plight.shadow_enabled = false
+		add_child(_plight)
+	var dive_lamp: bool = inv["headlamp"] > 0 and swim != null and swim.under
+	_plight.visible = dive_lamp or (inv["torch"] > 0 and _night and not cam_under)
+	if _plight.visible:
+		_plight.position = pw + Vector3(0, 0.6 if swim != null else 1.9, 0)
+		_plight.light_color = Color("cfeeff") if dive_lamp else Color("ffb262")
+		_plight.light_energy = 1.6 if dive_lamp else 1.3
+		_plight.omni_range = 10.0 if dive_lamp else 7.5
 	if cam_under:
 		var clear: bool = inv["goggles"] > 0
-		env.fog_density = 0.035 if clear else 0.12
+		env.fog_density = (0.018 if inv["headlamp"] > 0 else 0.035) if clear else 0.12
 		env.fog_light_color = Color("0e5866").lerp(Color("031820"), 1.0 - b)
 		env.fog_aerial_perspective = 0.0
 		env.fog_sky_affect = 1.0
@@ -2860,6 +3161,20 @@ func _update_hud(c: Dictionary) -> void:
 	var hint := companions.nav_hint(c)
 	if hint != "":
 		hud.nav.text += "\n" + hint
+	if inv["spyglass"] > 0:
+		var seen := []
+		for isl in islands:
+			if not isl.visited and isl != best and (isl != _lighthouse() or not _objs_of("radio").is_empty()):
+				seen.append("%s%d m" % [_arrow_to(isl.x - c.x, isl.z - c.z), roundi(Vector2(isl.x - c.x, isl.z - c.z).length() - isl.r)])
+		if not wreck_node.used:
+			var wp: Vector3 = wreck_node.pos
+			seen.append("沉船 %s%d m" % [_arrow_to(wp.x - c.x, wp.z - c.z), roundi(Vector2(wp.x - c.x, wp.z - c.z).length())])
+		if not seen.is_empty():
+			hud.nav.text += "\n望遠鏡：" + "　".join(seen)
+	if not _objs_of("radio").is_empty() and S["rescued"] < 1:
+		var lh := _lighthouse()
+		hud.nav.text += "\n訊號 %s 燈塔島 %d m" % [_arrow_to(lh.x - c.x, lh.z - c.z), maxi(0, roundi(Vector2(lh.x - c.x, lh.z - c.z).length() - lh.r))]
+	hud.btn["heal"].visible = (inv["bandage"] > 0 or inv["medkit"] > 0) and S["health"] < 99.0
 	var tb = traders.nav_target()
 	if tb != null:
 		hud.nav.text += "\n%s 商船 %d m" % [_arrow_to(tb.x - c.x, tb.y - c.z), roundi(Vector2(tb.x - c.x, tb.y - c.z).length())]
@@ -2877,17 +3192,22 @@ func _update_hud(c: Dictionary) -> void:
 					o.label.text = "沒有柴火 · 點我添木板"
 				if o.has("level_node"):
 					o.level_node.position.y = 0.59 + 0.045 * o.water
-			"smelter":
+			"smelter", "pot":
 				o.label.modulate = Color("f0a548") if not o.done.is_empty() else Color("f4ecd6")
 				if not o.done.is_empty():
 					var parts := []
 					for k in o.done:
 						parts.append("%s %d" % [ITEMS[k], o.done[k]])
-					o.label.text = "煉好了：%s · 點我拿" % "、".join(parts)
+					o.label.text = "%s好了：%s · 點我拿" % ["煉" if o.kind == "smelter" else "煮", "、".join(parts)]
 				elif not o.slots.is_empty():
-					o.label.text = "熔爐 %d 份 · %d 秒" % [o.slots.size(), ceili(o.slots[0][0])]
+					o.label.text = "%s %d 份 · %d 秒" % [OBJ_NAME[o.kind], o.slots.size(), ceili(o.slots[0][0])]
 				else:
-					o.label.text = "熔爐 · 點我放金屬礦或沙"
+					o.label.text = "熔爐 · 點我放金屬礦或沙" if o.kind == "smelter" else "料理鍋 · 點我煮菜"
+			"radio":
+				var lh := _lighthouse()
+				var c0 := _raft_center()
+				o.label.modulate = Color("7dff6a")
+				o.label.text = "求救訊號：燈塔島 %s %d m" % [_arrow_to(lh.x - c0.x, lh.z - c0.z), roundi(Vector2(lh.x - c0.x, lh.z - c0.z).length())]
 			"colnet":
 				o.label.modulate = Color("f0a548") if o.count > 0 else Color("f4ecd6")
 				o.label.text = ("收集網 %d/%d · 點我收網" % [o.count, NET_HOLD]) if o.count > 0 else "收集網 · 等漂流物"
@@ -2983,7 +3303,7 @@ func _simulate(dt: float, c: Dictionary) -> void:
 
 	# needs
 	var drain := 1.3 if mode == "hardcore" else 1.0
-	S["thirst"] = maxf(0.0, S["thirst"] - dt * 100.0 / THIRST_SEC * drain)
+	S["thirst"] = maxf(0.0, S["thirst"] - dt * 100.0 / THIRST_SEC * drain * (0.85 if inv["cloak"] > 0 else 1.0))
 	S["hunger"] = maxf(0.0, S["hunger"] - dt * 100.0 / HUNGER_SEC * drain)
 	if S["thirst"] <= 0.0:
 		S["health"] -= dt * 1.6
@@ -3073,15 +3393,15 @@ func _simulate(dt: float, c: Dictionary) -> void:
 					if o.prog >= 30.0 * (1.0 - 0.03 * _lv("water")):
 						o.prog = 0.0
 						o.water += 1
-			"smelter":
+			"smelter", "pot":
 				for sl in o.slots:
 					sl[0] -= sdt
 				while not o.slots.is_empty() and o.slots[0][0] <= 0.0:
-					var raw: String = o.slots.pop_front()[1]
-					var out: String = SMELT[raw][0]
+					var rid: String = o.slots.pop_front()[1]
+					var out: String = STATIONS[o.kind][rid].out
 					o.done[out] = int(o.done.get(out, 0)) + 1
 					if o.slots.is_empty():
-						hud.toast("熔爐煉好了，去拿%s" % ITEMS[out])
+						hud.toast("%s好了，去拿%s" % [OBJ_NAME[o.kind], ITEMS[out]])
 				o.fire.visible = not o.slots.is_empty()
 				if o.fire.visible:
 					o.fire.scale = Vector3(1, 0.8 + sin(wall_t * 15.0) * 0.2, 1)
@@ -3243,9 +3563,11 @@ func _sail(dt: float, c: Dictionary) -> void:
 		if not isl.visited and d < isl.r + 18.0:
 			isl.visited = true
 			S["islands"] += 1
-			hud.toast("發現小島！點棕櫚樹和木箱搜刮")
+			hud.toast("看到燈塔了！靠近點燈塔，發射信號彈求救" if isl == _lighthouse() else "發現小島！點棕櫚樹和木箱搜刮")
 			_refresh_inv()
 		for n in isl.nodes:
+			if n.kind == "tree" and float(n.get("chop", 0.0)) > 0.0:
+				n.chop -= dt
 			if n.kind == "tree" and n.cd > 0.0:
 				n.cd -= dt
 				if n.cd <= 0.0:
@@ -3344,8 +3666,11 @@ func _update_shark(dt: float, c: Dictionary) -> void:
 						hud.toast("鯊魚朝你游過來了！快上船或拿矛反擊")
 						sfx.play("shark_alert", null, -2.0, 0.0)
 					return
-			if shark.timer <= 0.0 and tiles.size() > 1:
-				shark.target = _edge_tiles().pick_random()
+			var soft: Array = _edge_tiles().filter(func(x): return not x.rf)
+			if shark.timer <= 0.0 and tiles.size() > 1 and soft.is_empty():
+				shark.timer = 40.0   # every edge is reinforced: it just keeps circling
+			elif shark.timer <= 0.0 and tiles.size() > 1:
+				shark.target = soft.pick_random()
 				shark.side = _bite_side(shark.target)
 				shark.state = "approach"
 				shark.lunge = false
@@ -3409,6 +3734,13 @@ func _update_shark(dt: float, c: Dictionary) -> void:
 					shark.jaw = 1.0
 					sfx.play("bite", Vector3(bite_pt.x, 0, bite_pt.y))
 					ocean.ripple(bite_pt.x - side.x * 1.75, bite_pt.y - side.y * 1.75, 0.9)
+					if t.rf:
+						hud.toast("鯊魚咬不動強化地板，放棄走了！")
+						t.shake = 0.2
+						shark.jaw = 0.0
+						shark.state = "flee"
+						shark.timer = 30.0
+						return
 					if tiles.size() > 1:
 						t.hp -= 1
 					t.shake = 0.35
@@ -3454,8 +3786,9 @@ func _update_shark(dt: float, c: Dictionary) -> void:
 				sfx.play("bite", tp)
 				ocean.ripple(tp.x, tp.z, 1.0)
 				if shark.tpeer == "":
+					dmg *= _armor_k()
 					S["health"] -= dmg
-					hud.toast("被鯊魚咬了一口！生命 -%d" % int(dmg))
+					hud.toast("被鯊魚咬了一口！生命 -%d" % int(dmg) + ("（盔甲擋掉了一些）" if _armor_k() < 1.0 else ""))
 				else:
 					net.send_to(shark.tpeer, {"e": "hurt", "dmg": dmg})
 				shark.state = "flee"
@@ -3520,7 +3853,7 @@ func _save_game() -> void:
 		return   # a friend's copy of the host's world is not theirs to save
 	var tl := []
 	for t in tiles.values():
-		tl.append([t.cell.x, t.cell.y, t.hp])
+		tl.append([t.cell.x, t.cell.y, t.hp, 1 if t.rf else 0])
 	var ol := []
 	for o in objs:
 		ol.append(_obj_entry(o))
@@ -3572,6 +3905,8 @@ func _load_game() -> bool:
 	for e in data.tiles:
 		var c := Vector2i(int(e[0]), int(e[1]))
 		_add_tile(c)
+		if e.size() > 3 and int(e[3]) == 1:
+			_reinforce(tiles[c])
 		tiles[c].hp = int(e[2])
 		_tint(tiles[c])
 	for e in data.objs:
@@ -3659,6 +3994,10 @@ func _on_death() -> void:
 	shark.state = "flee"
 	shark.timer = 20.0
 	var cell: Vector2i = tiles.keys()[0]
+	var beds := _objs_of("bed")
+	if not beds.is_empty():
+		cell = beds[0].tile.cell
+		hud.toast("你在床邊醒來")
 	P["x"] = cell.x * TILE
 	P["z"] = cell.y * TILE
 	_refresh_inv()
@@ -3903,7 +4242,7 @@ func _apply_obj(o: Dictionary, e: Dictionary) -> void:
 		for k in e.store:
 			if ITEMS.has(k) and int(e.store[k]) > 0:
 				o.store[k] = int(e.store[k])
-	if o.kind in ["grill", "bgrill", "smelter"]:
+	if o.kind in ["grill", "bgrill", "smelter", "pot"]:
 		var dn = e.get("done", {})
 		o["done"] = {"cooked": int(dn)} if typeof(dn) != TYPE_DICTIONARY else {}
 		if typeof(dn) == TYPE_DICTIONARY:
@@ -3935,7 +4274,7 @@ func _quant(v):
 func world_entities() -> Dictionary:
 	var e := {}
 	for t in tiles.values():
-		e["t:" + _cell_key(t.cell)] = t.hp
+		e["t:" + _cell_key(t.cell)] = t.hp + (10 if t.rf else 0)   # tens digit: reinforced
 	for o in objs:
 		e["o:" + _cell_key(o.tile.cell)] = _quant(_obj_entry(o))
 	e["sh"] = shelter.save_state()
@@ -3970,7 +4309,9 @@ func apply_entities(e: Dictionary, full: bool) -> void:
 		keep_t[c] = true
 		if not tiles.has(c):
 			_add_tile(c)
-		var hp := int(e[k])
+		var hp := int(e[k]) % 10
+		if int(e[k]) >= 10 and not tiles[c].rf:
+			_reinforce(tiles[c])
 		if tiles[c].hp != hp:
 			if hp < tiles[c].hp:
 				tiles[c].shake = 0.35
@@ -4260,7 +4601,7 @@ func net_client_event(ev: Dictionary, peer: String) -> void:
 func net_host_event(ev: Dictionary) -> void:
 	match str(ev.get("e", "")):
 		"hurt":
-			var dmg := float(ev.get("dmg", 25.0))
+			var dmg := float(ev.get("dmg", 25.0)) * _armor_k()
 			S["health"] -= dmg
 			if swim != null:
 				sfx.play("bite", swim.pos)

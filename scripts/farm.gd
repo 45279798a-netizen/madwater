@@ -49,6 +49,7 @@ func setup(o: Dictionary) -> void:
 				o.spots.append({"crop": "", "grow": 0.0, "dead": false, "shown": "", "node": pn})
 			o["moist"] = 0.0
 			o["dry"] = 0.0
+			o["fert"] = 0.0      ## seconds of fertilizer left: crops grow twice as fast
 		"kelpfarm":
 			o["planted"] = false
 			o["kelp"] = 0
@@ -199,8 +200,10 @@ func _sim_field(grp: Dictionary, dt: float) -> void:
 			if a.moist > 0.0:
 				a.moist = maxf(0.0, a.moist - dt / MOIST_SEC)
 				a.dry = 0.0
+				var speed := 2.0 if a.fert > 0.0 else 1.0
+				a.fert = maxf(0.0, a.fert - dt)
 				for s in living:
-					s.grow = minf(1.0, s.grow + dt / g.CROPS[s.crop][1])
+					s.grow = minf(1.0, s.grow + dt * speed / g.CROPS[s.crop][1])
 			else:
 				a.dry += dt
 				if a.dry >= WITHER_SEC:
@@ -386,6 +389,8 @@ func _label(grp: Dictionary) -> void:
 				lb.text = "%s · 全枯死了 · 點我清掉" % head
 			else:
 				lb.text = "%s · %d/%d 株 · 生長 %d%%" % [head, planted, n * 4, int(grow / maxi(1, planted - dead) * 100.0)]
+				if grp.objs.any(func(a): return a.fert > 0.0):
+					lb.text += " · 施肥中"
 		"kelpfarm":
 			var kelp := _sum(grp, "kelp")
 			var planted := 0
@@ -510,7 +515,17 @@ func _tap_field(o: Dictionary, grp: Dictionary) -> void:
 		g.sfx.play("drink", null, -6.0)
 		g.hud.toast("澆了 %d 杯淡水%s" % [n, ("，還有 %d 格缺水" % (thirsty.size() - n)) if thirsty.size() > n else ""])
 		return
-	# 3. plant the empty spots
+	# 3. fertilize what is growing
+	var unfed: Array = grp.objs.filter(func(a): return a.fert <= 0.0 and a.spots.any(func(s): return s.crop != "" and not s.dead and s.grow < 1.0))
+	if not unfed.is_empty() and g.inv["fert"] > 0:
+		var n := mini(unfed.size(), g.inv["fert"])
+		for i in n:
+			unfed[i].fert = 180.0
+		g.inv["fert"] -= n
+		g.sfx.play("pickup", null, -6.0)
+		g.hud.toast("施了 %d 份肥料，3 分鐘內長快一倍" % n)
+		return
+	# 4. plant the empty spots
 	var empty := 0
 	for a in grp.objs:
 		for s in a.spots:
@@ -669,6 +684,7 @@ func save_state(o: Dictionary, e: Dictionary) -> void:
 			e["spots"] = o.spots.map(func(s): return [s.crop, s.grow, s.dead])
 			e["moist"] = o.moist
 			e["dry"] = o.dry
+			e["fert"] = o.fert
 		"kelpfarm":
 			for k in ["planted", "kelp", "prog"]:
 				e[k] = o[k]
@@ -693,6 +709,7 @@ func load_state(o: Dictionary, e: Dictionary) -> void:
 				o.spots[i].dead = bool(sp[i][2])
 			o.moist = float(e.get("moist", 0.0))
 			o.dry = float(e.get("dry", 0.0))
+			o.fert = float(e.get("fert", 0.0))
 		"kelpfarm":
 			o.planted = bool(e.get("planted", false))
 			o.kelp = int(e.get("kelp", 0))
