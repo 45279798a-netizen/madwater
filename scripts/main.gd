@@ -159,6 +159,9 @@ var shelter: Shelter
 var weather: Weather
 var companions: Companions
 var net: Net
+var gfx: Gfx
+var _settings_from_menu := false
+var _fps_t := 0.0
 var _host_after_start := false
 var _mp_menu := false
 var _nid := 0
@@ -217,6 +220,8 @@ func _ready() -> void:
 	sfx = Sfx.new()
 	add_child(sfx)
 	net = Net.new(self)
+	gfx = Gfx.new()
+	gfx.apply(self)
 	if OS.has_feature("web") and str(JavaScriptBridge.eval("location.search", true)).contains("mwtest"):
 		_js_cb = JavaScriptBridge.create_callback(func(args): _on_action(str(args[0])))
 		JavaScriptBridge.get_interface("window").mwAction = _js_cb
@@ -248,16 +253,9 @@ func _setup_world() -> void:
 	sun.directional_shadow_max_distance = 70.0
 	add_child(sun)
 	if OS.has_feature("web"):
-		# browsers (and phones) run the lighter GL renderer: trim the expensive bits
-		env.glow_enabled = false
-		env.tonemap_exposure = 0.88
-		sun.directional_shadow_max_distance = 40.0
-		RenderingServer.directional_shadow_atlas_set_size(2048, true)
-		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
-		Ocean.lite = true
-	if Hud.is_touch():
-		get_viewport().scaling_3d_scale = 0.7
-		Ocean.lite = true
+		env.tonemap_exposure = 0.88   # the GL renderer comes out a touch brighter
+	# resolution, shadows, ocean mesh, clouds, MSAA, glow and frame cap: see Gfx (applied in _ready)
+	Ocean.lite = OS.has_feature("web") or Hud.is_touch()
 	ocean = Ocean.new()
 	add_child(ocean)
 	var uw := CanvasLayer.new()
@@ -563,6 +561,7 @@ func _show_start() -> void:
 		+ [["start_standard", "標準", not FileAccess.file_exists(SAVE_PATH)], ["start_peaceful", "和平", false],
 			["start_hardcore", "硬派", false], ["start_creative", "創造", false]]
 		+ ([["mp_back", "取消開房間", false]] if _host_after_start else [["mp", "跟朋友玩", false]])
+		+ [["settings_menu", "畫質設定", false]]
 		+ ([["fullscreen", "全螢幕", false]] if _screen().get("can", false) and not _screen().get("full", false) else []))
 	if _screen().get("ios", false) and not _screen().get("standalone", false) and net.kind() == "peer":
 		hud.toast("iPhone 想全螢幕：用 Safari 按「分享」→「加入主畫面」，從主畫面打開")
@@ -1159,6 +1158,15 @@ func _open_sheet(mode: String) -> void:
 		if companions.any_tamed():
 			rows = companions.sheet_rows() + rows
 		hud.show_sheet("夥伴與熟練度" if companions.any_tamed() else "熟練度", rows)
+	elif mode == "settings":
+		for p in ["low", "medium", "high", "ultra"]:
+			rows.append({"id": "preset_" + p, "name": "畫質：" + Gfx.PRESET_NAME[p],
+				"desc": {"low": "最省電、最順，舊手機用", "medium": "手機預設", "high": "比較新的手機或平板", "ultra": "電腦，或很強的手機"}[p],
+				"cost_text": "", "ok": gfx.preset != p, "label": "使用中" if gfx.preset == p else "套用"})
+		for k in Gfx.KNOBS:
+			rows.append({"id": "knob_" + k, "name": "%s：%s" % [Gfx.KNOBS[k][0], gfx.value_name(k)], "desc": Gfx.KNOBS[k][1],
+				"cost_text": "", "ok": true, "label": "切換"})
+		hud.show_sheet("畫質設定（目前：%s）" % Gfx.PRESET_NAME[gfx.preset], rows)
 	elif mode == "room":
 		rows.append({"id": "", "name": "你（%s）" % net.nick + ("・房主" if net.is_host() else ""), "desc": "房號 %s" % net.code, "cost_text": "", "ok": false, "label": ""})
 		for k in net.peers:
@@ -1236,6 +1244,16 @@ func _on_action(id: String) -> void:
 		"fs", "fullscreen":
 			if OS.has_feature("web"):
 				JavaScriptBridge.eval("MWNet.fullscreen()", true)
+		"settings_menu":
+			_settings_from_menu = true
+			hud.hide_menu()
+			_open_sheet("settings")
+		"settings":
+			if sheet_mode == "settings":
+				_close_sheet()
+			else:
+				_set_build("")
+				_open_sheet("settings")
 		"room":
 			if sheet_mode == "room":
 				_close_sheet()
@@ -1288,6 +1306,16 @@ func _on_action(id: String) -> void:
 
 
 func _on_recipe(id: String) -> void:
+	if sheet_mode == "settings":
+		if id.begins_with("preset_"):
+			gfx.use_preset(id.substr(7))
+		elif id.begins_with("knob_"):
+			gfx.cycle(id.substr(5))
+		gfx.apply(self)
+		var keep := hud.sheet_scroll.scroll_vertical
+		_open_sheet("settings")
+		hud.sheet_scroll.set_deferred("scroll_vertical", keep)
+		return
 	if sheet_mode == "room":
 		if id == "leave_room":
 			_leave_room()
@@ -2288,6 +2316,15 @@ func _tap_debris(d: Dictionary, pw: Vector3) -> void:
 func _process(delta: float) -> void:
 	var dt := minf(delta, 0.05)
 	net.update(delta)
+	if _settings_from_menu and not hud.sheet.visible:
+		_settings_from_menu = false
+		sheet_mode = ""
+		_show_start()
+	if hud.fps_label.visible:
+		_fps_t -= delta
+		if _fps_t <= 0.0:
+			_fps_t = 0.5
+			hud.fps_label.text = "%d FPS" % Engine.get_frames_per_second()
 	_screen_t -= delta
 	if _screen_t <= 0.0 and hud != null:
 		_screen_t = 1.0

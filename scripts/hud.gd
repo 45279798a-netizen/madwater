@@ -28,6 +28,7 @@ var goal_sub: Label
 var inv_label: Label
 var btn := {}
 var toast_label: Label
+var fps_label: Label
 var warn_label: Label
 var sheet: PanelContainer
 var sheet_title: Label
@@ -148,13 +149,19 @@ func _ready() -> void:
 	acts.add_theme_constant_override("h_separation", 8)
 	acts.add_theme_constant_override("v_separation", 8)
 	bottom.add_child(acts)
-	for b in [["fs", "全螢幕"], ["room", "房間"], ["reel", "收竿"], ["skills", "熟練度"], ["swim", "下水 (F)"], ["eat", "吃東西"], ["drink", "喝水"], ["build", "建造"], ["craft", "合成"]]:
+	for b in [["fs", "全螢幕"], ["settings", "設定"], ["room", "房間"], ["reel", "收竿"], ["skills", "熟練度"], ["swim", "下水 (F)"], ["eat", "吃東西"], ["drink", "喝水"], ["build", "建造"], ["craft", "合成"]]:
 		var bt := _button(acts, b[1], b[0] == "craft")
 		var id: String = b[0]
 		bt.pressed.connect(func(): action.emit(id))
 		btn[id] = bt
 	btn["fs"].visible = false
 	btn["room"].visible = false
+
+	fps_label = _label(root, "", 13, INK)
+	fps_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 4)
+	fps_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fps_label.visible = false
 
 	# craft/build sheet
 	sheet = _panel(root)

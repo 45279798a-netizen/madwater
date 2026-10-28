@@ -52,6 +52,12 @@ func _init() -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
+## Mesh resolution: 0 low .. 3 very high (graphics settings).
+func set_detail(level: int) -> void:
+	var r: Array = [[110, 80], [160, 110], [256, 170], [320, 220]][clampi(level, 0, 3)]
+	mesh = _radial_mesh(r[0], r[1], 260.0)
+
+
 func _make_waves() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7

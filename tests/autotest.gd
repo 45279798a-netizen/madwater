@@ -9,6 +9,7 @@ func _ready() -> void:
 	Engine.max_fps = 60
 	game = load("res://main.tscn").instantiate()
 	add_child(game)
+	Engine.max_fps = 60    # the game's graphics settings set their own cap; the timings below assume 60
 	if not game.has_method("_reset"):
 		print("FAIL main script did not load")
 		get_tree().quit(1)
@@ -637,5 +638,21 @@ func _process(_d: float) -> void:
 			cp.pets.turtle.aff = 0.5; cp.pets.turtle.decay = 0.01
 		1012:
 			check("neglected companion leaves", not game.companions.pets.turtle.tamed)
+			# graphics settings
+			game._on_action("settings")
+			check("settings sheet opens", game.sheet_mode == "settings" and game.hud.sheet.visible)
+			game._on_recipe("preset_low")
+			check("low preset: 50% resolution, no shadows, 30 fps", is_equal_approx(game.get_viewport().scaling_3d_scale, 0.5) and not game.sun.shadow_enabled and Engine.max_fps == 30)
+			game._on_recipe("knob_shadows")
+			check("changing one knob makes it custom", game.gfx.preset == "custom" and game.sun.shadow_enabled)
+			game._on_recipe("knob_show_fps")
+			check("FPS counter shows", game.hud.fps_label.visible)
+			var saved := Gfx.new()
+			check("settings are saved", saved.preset == "custom" and int(saved.v.shadows) == 1 and int(saved.v.show_fps) == 1)
+			game._on_recipe("preset_ultra")
+			check("ultra preset: full resolution, 4x MSAA", is_equal_approx(game.get_viewport().scaling_3d_scale, 1.0) and game.get_viewport().msaa_3d == Viewport.MSAA_4X)
+			game._on_recipe("knob_show_fps")
+			DirAccess.remove_absolute(Gfx.PATH)
+			game._close_sheet()
 			print("AUTOTEST DONE, %d failures" % fails)
 			get_tree().quit()
