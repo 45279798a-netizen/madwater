@@ -557,30 +557,6 @@ static func helm() -> Dictionary:
 	return {"node": g, "wheel": wheel}
 
 
-## A drifting cumulus: a cluster of flattened puffs, roughly 1 unit across (scale it up a lot).
-## Far away and above the fog, lit by the sun so the undersides go grey.
-static func cloud(rng: RandomNumberGenerator, m: Material) -> Node3D:
-	var g := Node3D.new()
-	var puff: Mesh = shared("cloud_puff", func(): return sphere(1.0, 12))
-	var style := rng.randi() % 3      # 0 long fair-weather bank, 1 towering cumulus, 2 small scattered puffs
-	var groups := 1 if style != 2 else 3 + rng.randi() % 3
-	for gi in groups:
-		var ox := rng.randf_range(-0.9, 0.9) if style == 2 else 0.0
-		var oz := rng.randf_range(-0.4, 0.4) if style == 2 else 0.0
-		var span: float = [1.6, 1.0, 0.45][style]
-		var n: int = [7, 6, 4][style] + rng.randi() % 4
-		for k in n:
-			var t := float(k) / maxf(1.0, n - 1) - 0.5
-			var r: float = rng.randf_range(0.18, 0.36) * (1.0 - absf(t) * 0.9) * (0.5 if style == 2 else 1.0)
-			var tall := (1.0 - absf(t) * 1.4) * (0.9 if style == 1 else 0.25)
-			part(g, puff, m, Vector3(ox + t * span + rng.randf_range(-0.06, 0.06), r * 0.3 + maxf(0.0, tall) * rng.randf_range(0.3, 0.6), oz + rng.randf_range(-0.12, 0.12)),
-				Vector3.ZERO, Vector3(r * 1.5, r * (1.0 + (0.6 if style == 1 else 0.0)), r * 1.2))
-		part(g, puff, m, Vector3(ox, 0.02, oz), Vector3.ZERO, Vector3(span * 0.55, 0.08, 0.3))   # flat base
-	for c in g.get_children():
-		(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return g
-
-
 static func bobber() -> Node3D:
 	var g := Node3D.new()
 	var top := SphereMesh.new()

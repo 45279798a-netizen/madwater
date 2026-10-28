@@ -110,7 +110,7 @@ const DEBRIS := {
 var ocean: Ocean
 var sun: DirectionalLight3D
 var env: Environment
-var sky_mat: ProceduralSkyMaterial
+var sky_mat: SkyClouds
 var cam: Camera3D
 var hud: Hud
 var sfx: Sfx
@@ -144,8 +144,6 @@ var seabed_nodes: Array = []
 var seaweeds: Array = []
 var seabed_mat: ShaderMaterial
 var uw_overlay: ColorRect
-var clouds: Node3D
-var cloud_mat: StandardMaterial3D
 var wreck_node: Dictionary = {}
 var cam_yaw := 0.7
 var cam_pitch := 0.55
@@ -229,11 +227,9 @@ func _ready() -> void:
 func _setup_world() -> void:
 	env = Environment.new()
 	env.background_mode = Environment.BG_SKY
-	sky_mat = ProceduralSkyMaterial.new()
-	sky_mat.sun_angle_max = 25.0
-	sky_mat.sun_curve = 0.12
+	sky_mat = SkyClouds.new()
 	var sky := Sky.new()
-	sky.sky_material = sky_mat
+	sky.sky_material = sky_mat.mat
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
@@ -264,26 +260,6 @@ func _setup_world() -> void:
 		Ocean.lite = true
 	ocean = Ocean.new()
 	add_child(ocean)
-	# a ring of cumulus far out over the sea, following the camera
-	clouds = Node3D.new()
-	add_child(clouds)
-	cloud_mat = StandardMaterial3D.new()
-	cloud_mat.albedo_color = Color(1, 1, 1)
-	cloud_mat.roughness = 1.0
-	cloud_mat.disable_fog = true
-	cloud_mat.emission_enabled = true
-	cloud_mat.emission = Color(0.55, 0.6, 0.68)
-	cloud_mat.emission_energy_multiplier = 0.35
-	var crng := RandomNumberGenerator.new()
-	crng.seed = 4242
-	for k in (12 if OS.has_feature("web") else 18):
-		var cl := Models.cloud(crng, cloud_mat)
-		var a := TAU * k / (12.0 if OS.has_feature("web") else 18.0) + crng.randf_range(-0.15, 0.15)
-		var d := crng.randf_range(320.0, 520.0)
-		cl.position = Vector3(cos(a) * d, crng.randf_range(24.0, 55.0), sin(a) * d)
-		cl.rotation.y = -a + PI / 2.0 + crng.randf_range(-0.4, 0.4)
-		cl.scale = Vector3(crng.randf_range(0.8, 1.4), crng.randf_range(0.55, 0.9), 1.0) * crng.randf_range(50.0, 105.0)
-		clouds.add_child(cl)
 	var uw := CanvasLayer.new()
 	uw.layer = -1
 	add_child(uw)
@@ -2433,12 +2409,17 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	sun.light_energy = 0.05 + 1.15 * b
 	sun.light_color = Color("fff1d6").lerp(Color("ff9a52"), dusk)
 	weather.apply_sky()
-	# clouds: white by day, warm at dusk, dark at night and in a storm; they drift with the wind
-	var cday := Color("1a2233").lerp(Color("ffffff"), b).lerp(Color("ffc8a0"), dusk * 0.6)
-	cloud_mat.albedo_color = cday.lerp(Color("6c7480"), weather.cloud * 0.75)
-	cloud_mat.emission = Color(0.08, 0.1, 0.14).lerp(Color(0.55, 0.6, 0.68), b) * (1.0 - 0.6 * weather.cloud)
-	clouds.position = Vector3(cam.global_position.x, 0, cam.global_position.z)
-	clouds.rotation.y += dt * 0.0025
+	# clouds: white by day, gold at dusk, faint at night; thicker and greyer as the weather turns
+	var lit := Color("10141f").lerp(Color("fffaf2"), b).lerp(Color("ffb27a"), dusk * 0.8)
+	var shade := Color("0a0d16").lerp(Color("9aa8bb"), b).lerp(Color("8a6a78"), dusk * 0.6)
+	lit = lit.lerp(Color("8a929c") * (0.3 + 0.7 * b), weather.cloud * 0.7)
+	shade = shade.lerp(Color("4a5260") * (0.3 + 0.7 * b), weather.cloud * 0.8)
+	# moonlight: the night keeps a cool ambient so the raft never vanishes
+	var nk := clampf(1.0 - b * 1.6, 0.0, 1.0)
+	env.ambient_light_color = Color(0.16, 0.2, 0.32)
+	env.ambient_light_sky_contribution = 1.0 - 0.6 * nk
+	env.ambient_light_energy = 1.0 + 1.2 * nk
+	sky_mat.set_clouds(0.46 + 0.5 * weather.cloud, weather.storm, lit, shade, clampf(1.0 - b * 1.6, 0.0, 1.0), wall_t)
 	var hours := fmod(6.0 + phase * 24.0, 24.0)
 	var hh := int(hours)
 	var mm := int((hours - hh) * 6.0) * 10
@@ -2470,7 +2451,7 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	sfx.set_underwater(cam_under)
 	seabed_mat.set_shader_parameter("time_s", wall_t)
 	seabed_mat.set_shader_parameter("light_k", 0.15 + 0.85 * b)
-	ocean.update_frame(cam_target, sun_dir, 0.15 + 0.85 * b)
+	ocean.update_frame(cam_target, sun_dir, 0.3 + 0.7 * b)   # moonlit sea at night
 
 
 func _arrow_to(dx: float, dz: float) -> String:
