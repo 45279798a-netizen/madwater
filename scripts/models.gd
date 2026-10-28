@@ -2302,3 +2302,389 @@ static func turtle_tank() -> Dictionary:
 	part(g, box(1.32, 0.03, 1.02), water, Vector3(0, 0.4, 0))
 	part(g, box(0.5, 0.06, 0.3), mat(Color("8b8178")), Vector3(-0.35, 0.12, 0.25))
 	return {"node": g}
+
+
+# ---------------------------------------------------------------- upgrades (metal tier)
+
+static func _tor(inner: float, outer: float) -> TorusMesh:
+	var t := TorusMesh.new()
+	t.rings = 14
+	t.ring_segments = 6
+	t.inner_radius = inner
+	t.outer_radius = outer
+	return t
+
+
+static func _glow(c: Color, e := 2.0) -> StandardMaterial3D:
+	var m := mat(c, 0.5)
+	m.emission_enabled = true
+	m.emission = c
+	m.emission_energy_multiplier = e
+	return m
+
+
+## Clay kiln on a stone plinth: a fire mouth in front, a chimney, and a tray where finished bars cool.
+## "bars" (little ingots and glass panes) shows while something waits to be collected.
+static func smelter() -> Dictionary:
+	var g := Node3D.new()
+	var stone := tm(Color("858077"), "stone", 0.95, 2.5, 1.5)
+	var stone2 := tm(Color("6b665e"), "stone", 0.95, 2.5, 1.5)
+	var clay := tm(Color("a9653f"), "soil", 0.9, 2.0, 0.8)
+	var clay2 := tm(Color("8e5234"), "soil", 0.9, 2.0, 0.8)
+	var soot := mat(Color("231c18"), 1.0)
+	# plinth of rough blocks
+	for k in 8:
+		var a := TAU * k / 8.0 + 0.2
+		part(g, box(0.36, 0.26, 0.3), stone if k % 2 == 0 else stone2, Vector3(cos(a) * 0.42, 0.13, sin(a) * 0.42), Vector3(0, -a, 0))
+	part(g, cyl(0.48, 0.5, 0.1, 14), stone2, Vector3(0, 0.3, 0))
+	# kiln body tapering into a chimney
+	part(g, cyl(0.34, 0.46, 0.55, 16), clay, Vector3(0, 0.62, 0))
+	part(g, cyl(0.2, 0.34, 0.28, 16), clay2, Vector3(0, 1.03, 0))
+	part(g, cyl(0.12, 0.14, 0.45, 10), clay, Vector3(0, 1.38, 0))
+	part(g, cyl(0.15, 0.15, 0.05, 10), soot, Vector3(0, 1.61, 0))
+	for y in [0.5, 0.75]:
+		part(g, _tor(0.44 - (y - 0.5) * 0.4, 0.48 - (y - 0.5) * 0.4), clay2, Vector3(0, y, 0))
+	# fire mouth
+	part(g, box(0.34, 0.26, 0.12), soot, Vector3(0, 0.52, 0.4))
+	part(g, box(0.44, 0.05, 0.16), stone2, Vector3(0, 0.67, 0.42))
+	var fire := Node3D.new()
+	g.add_child(fire)
+	for f in [Vector3(0, 0, 0.22), Vector3(0.09, 0.05, 0.16), Vector3(-0.08, -0.04, 0.18)]:
+		part(fire, cyl(0.0, 0.07, f.z, 7), fire_mat(), Vector3(f.x, 0.42 + f.z / 2.0, 0.42 + f.y * 0.3))
+	part(fire, box(0.26, 0.04, 0.04), _glow(Color("ff6a1a"), 3.0), Vector3(0, 0.4, 0.44))
+	fire.visible = false
+	# a stack of fuel wood and a cooling tray on the side
+	var logs := tm(Color("6a4a2a"), "bark", 0.95, 3.0)
+	for k in 3:
+		part(g, cyl(0.06, 0.06, 0.5, 7), logs, Vector3(-0.62, 0.07 + (0.11 if k == 2 else 0.0), -0.12 + k * 0.12 - (0.06 if k == 2 else 0.0)), Vector3(PI / 2, 0, 0))
+	var tray := tm(Color("4a4e52"), "metal", 0.6, 2.0)
+	part(g, box(0.42, 0.04, 0.3), tray, Vector3(0.62, 0.32, 0.1))
+	for p in [Vector2(0.45, -0.02), Vector2(0.79, -0.02), Vector2(0.45, 0.22), Vector2(0.79, 0.22)]:
+		part(g, box(0.03, 0.32, 0.03), tray, Vector3(p.x, 0.16, p.y))
+	var bars := Node3D.new()
+	bars.position = Vector3(0.62, 0.36, 0.1)
+	g.add_child(bars)
+	var ingot := tm(Color("b8bcc0"), "metal", 0.35, 3.0)
+	ingot.metallic = 0.7
+	for k in 3:
+		part(bars, prism(0.18, 0.06, 0.08, 0.5), ingot, Vector3(-0.1 + k * 0.1, 0.03, -0.06 + (k % 2) * 0.1), Vector3(0, 0.2 * k, 0))
+	part(bars, box(0.14, 0.015, 0.12), glass(Color("cfeff2"), 0.7), Vector3(0.08, 0.04, 0.08), Vector3(0, 0.4, 0))
+	bars.visible = false
+	bake(bars)
+	bake(g, [fire, bars])
+	return {"node": g, "fire": fire, "bars": bars}
+
+
+## Metal barrel grill on legs, lid propped open, a shelf on the side; room for four fish.
+static func bgrill() -> Dictionary:
+	var g := Node3D.new()
+	var iron := tm(Color("2f3438"), "metal", 0.55, 2.0)
+	iron.metallic = 0.5
+	var steel := tm(Color("6a7076"), "metal", 0.45, 2.5)
+	steel.metallic = 0.6
+	var wood := tm(Color("8a5a33"), "planks", 0.9, 2.0)
+	for p in [Vector2(-0.42, -0.24), Vector2(0.42, -0.24), Vector2(-0.42, 0.24), Vector2(0.42, 0.24)]:
+		_rod(g, Vector3(p.x, 0.0, p.y), Vector3(p.x * 0.85, 0.52, p.y * 0.8), 0.025, iron)
+	part(g, box(0.86, 0.03, 0.42), iron, Vector3(0, 0.2, 0))
+	# the barrel: a cylinder cut in half (bottom half filled with coals)
+	var half := CylinderMesh.new()
+	half.top_radius = 0.3
+	half.bottom_radius = 0.3
+	half.height = 1.0
+	half.radial_segments = 18
+	part(g, half, iron, Vector3(0, 0.6, 0), Vector3(0, 0, PI / 2), Vector3(1, 1, 0.75))
+	part(g, box(1.0, 0.03, 0.46), mat(Color("1c1714"), 1.0), Vector3(0, 0.74, 0))   # coal bed / opening
+	for x in [-0.5, 0.5]:
+		part(g, cyl(0.31, 0.31, 0.03, 18), steel, Vector3(x, 0.6, 0), Vector3(0, 0, PI / 2), Vector3(1, 1, 0.76))
+	# grate
+	for k in 9:
+		part(g, box(0.02, 0.02, 0.44), steel, Vector3(-0.44 + k * 0.11, 0.8, 0))
+	part(g, box(0.96, 0.02, 0.02), steel, Vector3(0, 0.8, -0.21))
+	part(g, box(0.96, 0.02, 0.02), steel, Vector3(0, 0.8, 0.21))
+	# lid swung back
+	var lid := Node3D.new()
+	lid.position = Vector3(0, 0.82, -0.23)
+	lid.rotation.x = -1.2
+	g.add_child(lid)
+	part(lid, half, iron, Vector3(0, 0.0, 0.0), Vector3(0, 0, PI / 2), Vector3(0.35, 1, 0.75))
+	part(lid, box(0.3, 0.04, 0.04), wood, Vector3(0, 0.12, 0.05))
+	# chimney and side shelf
+	part(g, cyl(0.05, 0.05, 0.35, 8), iron, Vector3(0.38, 0.98, -0.3))
+	part(g, box(0.36, 0.03, 0.4), wood, Vector3(0.72, 0.62, 0))
+	_rod(g, Vector3(0.88, 0.0, 0.15), Vector3(0.88, 0.62, 0.15), 0.02, iron)
+	_rod(g, Vector3(0.88, 0.0, -0.15), Vector3(0.88, 0.62, -0.15), 0.02, iron)
+	var fire := Node3D.new()
+	g.add_child(fire)
+	for x in [-0.3, 0.0, 0.3]:
+		part(fire, cyl(0.0, 0.06, 0.12, 6), fire_mat(), Vector3(x, 0.8, 0.05 * sin(x * 9.0)))
+	part(fire, box(0.9, 0.02, 0.36), _glow(Color("ff5a12"), 2.5), Vector3(0, 0.755, 0))
+	fire.visible = false
+	var fishes := []
+	var fish_mesh: Mesh = shared("grill_fish", func(): return sphere(1.0, 10))
+	for x in [-0.33, -0.11, 0.11, 0.33]:
+		var m := part(g, fish_mesh, mat(Color("8fa9b8")), Vector3(x, 0.84, 0), Vector3(0, PI / 2, 0), Vector3(0.24, 0.06, 0.09))
+		m.visible = false
+		part(m, prism(0.5, 0.9, 0.2), mat(Color("6f8a99")), Vector3(1.05, 0, 0), Vector3(0, 0, PI / 2))
+		fishes.append(m)
+	bake(g, [fire] + fishes)
+	return {"node": g, "fire": fire, "fishes": fishes}
+
+
+## Advanced purifier: a glass boiling tank on a metal frame over a firebox, copper coil to a
+## clear collecting jar whose water level rises.
+static func purifier() -> Dictionary:
+	var g := Node3D.new()
+	var steel := tm(Color("7d848a"), "metal", 0.45, 2.5)
+	steel.metallic = 0.6
+	var dark := tm(Color("3a3f44"), "metal", 0.6, 2.0)
+	var cu := mat(Color("c47a46"), 0.35, 0.8)
+	for p in [Vector2(-0.32, -0.28), Vector2(0.32, -0.28), Vector2(-0.32, 0.28), Vector2(0.32, 0.28)]:
+		part(g, box(0.05, 0.9, 0.05), steel, Vector3(p.x, 0.45, p.y))
+	part(g, box(0.72, 0.04, 0.62), steel, Vector3(0, 0.88, 0))
+	# firebox
+	part(g, box(0.5, 0.34, 0.46), dark, Vector3(0, 0.22, 0))
+	part(g, box(0.24, 0.16, 0.02), mat(Color("1a1512"), 1.0), Vector3(0, 0.2, 0.235))
+	var fire := Node3D.new()
+	g.add_child(fire)
+	part(fire, box(0.2, 0.12, 0.02), _glow(Color("ff6a1a"), 3.0), Vector3(0, 0.2, 0.24))
+	part(fire, cyl(0.0, 0.05, 0.12, 6), fire_mat(), Vector3(0, 0.33, 0.12))
+	fire.visible = false
+	part(g, cyl(0.06, 0.06, 0.5, 8), dark, Vector3(0, 0.62, 0))   # flue to the tank
+	# boiling tank: glass with a metal cap
+	part(g, cyl(0.26, 0.26, 0.5, 18), glass(Color("cfe9f3"), 0.35), Vector3(0, 1.15, 0))
+	part(g, cyl(0.24, 0.24, 0.3, 16), mat(Color("4a8fa8"), 0.2), Vector3(0, 1.06, 0))   # sea water inside
+	part(g, cyl(0.28, 0.28, 0.06, 18), steel, Vector3(0, 1.42, 0))
+	part(g, cyl(0.28, 0.28, 0.04, 18), steel, Vector3(0, 0.9, 0))
+	part(g, sphere(0.05, 8), steel, Vector3(0, 1.48, 0))
+	# coil to the jar
+	_rod(g, Vector3(0.1, 1.45, 0.0), Vector3(0.48, 1.5, 0.1), 0.02, cu)
+	_rod(g, Vector3(0.48, 1.5, 0.1), Vector3(0.52, 0.95, 0.12), 0.02, cu)
+	for k in 4:
+		part(g, _tor(0.06, 0.08), cu, Vector3(0.52, 1.0 + k * 0.1, 0.12), Vector3(0, 0, 0.15))
+	part(g, box(0.3, 0.03, 0.3), steel, Vector3(0.52, 0.56, 0.12))
+	_rod(g, Vector3(0.32, 0.88, 0.12), Vector3(0.52, 0.57, 0.12), 0.02, steel)
+	part(g, cyl(0.12, 0.11, 0.3, 14), glass(Color("eef8fc"), 0.4), Vector3(0.52, 0.72, 0.12))
+	var level := part(g, cyl(0.105, 0.1, 0.02, 12), mat(Color("8fd0ef"), 0.1), Vector3(0.52, 0.59, 0.12))
+	level.name = "Level"
+	bake(g, [fire, level])
+	return {"node": g, "fire": fire, "level_node": level}
+
+
+## Sprinkler: a blue water drum on a stand, a pipe up to a spinning head; "spray" shows while watering.
+static func sprinkler() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("7a5232"), "planks", 0.9, 2.0)
+	var steel := tm(Color("8a9096"), "metal", 0.45, 2.5)
+	steel.metallic = 0.6
+	for p in [Vector2(-0.26, -0.26), Vector2(0.26, -0.26), Vector2(-0.26, 0.26), Vector2(0.26, 0.26)]:
+		part(g, box(0.06, 0.4, 0.06), wood, Vector3(p.x, 0.2, p.y))
+	part(g, box(0.64, 0.05, 0.64), wood, Vector3(0, 0.42, 0))
+	part(g, cyl(0.26, 0.26, 0.6, 16), tm(Color("2b6fb8"), "plastic", 0.45, 2.0), Vector3(0, 0.75, 0))
+	for y in [0.55, 0.95]:
+		part(g, cyl(0.27, 0.27, 0.04, 16), steel, Vector3(0, y, 0))
+	part(g, cyl(0.03, 0.03, 0.75, 8), steel, Vector3(0, 1.42, 0))
+	var level := part(g, cyl(0.2, 0.2, 0.02, 12), glass(Color("8fd0ef"), 0.9), Vector3(0, 0.47, 0))
+	level.name = "Level"
+	level.visible = false
+	var head := Node3D.new()
+	head.position = Vector3(0, 1.82, 0)
+	g.add_child(head)
+	part(head, sphere(0.06, 8), steel)
+	for k in 3:
+		var a := TAU * k / 3.0
+		_rod(head, Vector3.ZERO, Vector3(cos(a) * 0.26, 0.02, sin(a) * 0.26), 0.018, steel)
+		part(head, sphere(0.03, 6), mat(Color("2b6fb8")), Vector3(cos(a) * 0.27, 0.02, sin(a) * 0.27))
+	var spray := Node3D.new()
+	spray.position = head.position
+	g.add_child(spray)
+	var wm := glass(Color("d6f1fb"), 0.28)
+	wm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	# three arcing jets (one per arm), each a chain of thin segments falling away, plus a few drops
+	for k in 3:
+		var a := TAU * k / 3.0
+		var dir := Vector3(cos(a), 0, sin(a))
+		var prev := dir * 0.27
+		for j in 5:
+			var t := (j + 1) / 5.0
+			var pt := dir * (0.27 + 1.3 * t) + Vector3(0, 0.35 * t - 1.6 * t * t, 0)
+			var seg := _rod(spray, prev, pt, 0.012 + 0.012 * t, wm)
+			seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			prev = pt
+		for j in 4:
+			var t := 0.35 + j * 0.18
+			var dp := dir.rotated(Vector3.UP, 0.18 * (j - 1.5)) * (0.27 + 1.3 * t) + Vector3(0, 0.35 * t - 1.6 * t * t - 0.08, 0)
+			part(spray, sphere(0.025, 5), wm, dp).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bake(spray, [], false)
+	spray.visible = false
+	bake(head)
+	bake(g, [head, spray, level])
+	return {"node": g, "head": head, "spray": spray, "level_node": level}
+
+
+## Collection net: a square of floats on the water with a net hanging inside it; what it catches
+## piles up in "catch" (children shown one by one as it fills).
+static func colnet() -> Dictionary:
+	var g := Node3D.new()
+	var h := TILE * 0.5 - 0.15
+	var wood: StandardMaterial3D = shared("kelp_wood", func(): return tmat(Color("8a6a40"), "bark", 0.9, 2.0))
+	var rope: StandardMaterial3D = shared("kelp_rope", func(): return tmat(Color("d8c49a"), "rope", 0.95, 8.0))
+	var float_m: StandardMaterial3D = shared("net_float", func(): return mat(Color("f2c23a"), 0.5))
+	var netm: StandardMaterial3D = shared("net_mesh", func():
+		var m := mat(Color("e6dcc0"), 0.9)
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		return m)
+	for z in [-h, h]:
+		part(g, cyl(0.1, 0.1, TILE - 0.1, 8), wood, Vector3(0, 0.03, z), Vector3(0, 0, PI / 2))
+	for x in [-h, h]:
+		part(g, cyl(0.1, 0.1, TILE - 0.1, 8), wood, Vector3(x, 0.03, 0), Vector3(PI / 2, 0, 0))
+	for x in [-h, h]:
+		for z in [-h, h]:
+			part(g, cyl(0.2, 0.2, 0.34, 12), float_m, Vector3(x, 0.05, z))
+			part(g, cyl(0.205, 0.205, 0.05, 12), rope, Vector3(x, 0.12, z))
+	# the net: a grid of cords sagging below the frame, plus a low wall standing up around it
+	var n := 9
+	for i in n:
+		var t := -h + (2.0 * h) * i / (n - 1)
+		var sag := 0.35 * (1.0 - pow(t / h, 2.0))
+		part(g, box(0.018, 0.018, 2.0 * h), netm, Vector3(t, -0.05 - sag, 0))
+		part(g, box(2.0 * h, 0.018, 0.018), netm, Vector3(0, -0.05 - sag, t))
+	for side in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+		for k in 2:
+			var y := 0.18 + k * 0.18
+			if side.x != 0.0:
+				part(g, box(0.018, 0.018, 2.0 * h), netm, Vector3(side.x * h, y, 0))
+			else:
+				part(g, box(2.0 * h, 0.018, 0.018), netm, Vector3(0, y, side.y * h))
+		for k in 5:
+			var u := -h + (2.0 * h) * k / 4.0
+			var p := Vector3(side.x * h, 0.27, u) if side.x != 0.0 else Vector3(u, 0.27, side.y * h)
+			part(g, cyl(0.015, 0.015, 0.36, 4), netm, p)
+	var catch := Node3D.new()
+	catch.name = "Catch"
+	g.add_child(catch)
+	var plank := tm(Color("9b6b42"), "planks", 0.9, 1.2)
+	var bottle := glass(Color("cfeaf6"), 0.8)
+	var leaf := tmat(Color("6a9e3c"), "grass", 0.8, 2.0, 0.6)
+	leaf.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var spots := [Vector3(-0.6, 0.06, -0.4), Vector3(0.5, 0.06, 0.3), Vector3(0.0, 0.05, -0.7), Vector3(-0.3, 0.07, 0.6),
+		Vector3(0.7, 0.06, -0.5), Vector3(-0.8, 0.05, 0.1)]
+	for i in spots.size():
+		var it := Node3D.new()
+		it.position = spots[i]
+		it.rotation.y = i * 1.3
+		catch.add_child(it)
+		match i % 3:
+			0:
+				part(it, box(1.1, 0.08, 0.26), plank)
+			1:
+				part(it, cyl(0.1, 0.11, 0.36, 10), bottle, Vector3.ZERO, Vector3(0, 0, PI / 2))
+			_:
+				part(it, box(0.7, 0.015, 0.3), leaf)
+		bake(it, [], false)
+		it.visible = false
+	bake(g, [catch], false)
+	return {"node": g, "catch": catch}
+
+
+## Fish trap: a float ring with a flag; a round cage hangs below with fish ("fishes") inside.
+static func fishtrap() -> Dictionary:
+	var g := Node3D.new()
+	var rope: StandardMaterial3D = shared("kelp_rope", func(): return tmat(Color("d8c49a"), "rope", 0.95, 8.0))
+	var float_m := mat(Color("e0482e"), 0.5)
+	var cage := tm(Color("8a6a40"), "bark", 0.9, 3.0)
+	part(g, _tor(0.5, 0.68), float_m, Vector3(0, 0.05, 0))
+	part(g, _tor(0.62, 0.66), rope, Vector3(0, 0.12, 0))
+	# cage under the water
+	for k in 10:
+		var a := TAU * k / 10.0
+		part(g, cyl(0.02, 0.02, 0.9, 4), cage, Vector3(cos(a) * 0.5, -0.45, sin(a) * 0.5))
+	for y in [-0.05, -0.45, -0.88]:
+		part(g, _tor(0.48, 0.52), cage, Vector3(0, y, 0))
+	part(g, cyl(0.52, 0.52, 0.03, 12), cage, Vector3(0, -0.9, 0))
+	part(g, cyl(0.12, 0.3, 0.25, 10), rope, Vector3(0, -0.2, 0))   # the funnel the fish swim in by
+	# a pole with a little flag so it can be seen from the deck
+	part(g, cyl(0.02, 0.02, 1.2, 5), cage, Vector3(0.58, 0.6, 0))
+	part(g, box(0.02, 0.22, 0.32), mat(Color("ff9f1c")), Vector3(0.58, 1.08, 0.17))
+	var fishes := []
+	var fm := mat(Color("8fa9b8"))
+	for i in 3:
+		var f := part(g, sphere(1.0, 8), fm, Vector3(-0.2 + i * 0.2, -0.55 - (i % 2) * 0.15, -0.15 + i * 0.12), Vector3(0, i * 1.7, 0), Vector3(0.2, 0.06, 0.07))
+		part(f, prism(0.5, 0.9, 0.2), fm, Vector3(1.05, 0, 0), Vector3(0, 0, PI / 2))
+		f.visible = false
+		fishes.append(f)
+	bake(g, fishes, false)
+	return {"node": g, "fishes": fishes}
+
+
+## Anchor winch: a drum between two posts with a coil of rope; "hook" (the anchor) rests on the deck
+## or hangs far below the raft, "line" is the rope going down while it is dropped.
+static func anchor() -> Dictionary:
+	var g := Node3D.new()
+	var wood := tm(Color("7a5232"), "planks", 0.9, 2.0)
+	var iron := tm(Color("3d4247"), "metal", 0.55, 2.0)
+	iron.metallic = 0.5
+	var rope: StandardMaterial3D = shared("kelp_rope", func(): return tmat(Color("d8c49a"), "rope", 0.95, 8.0))
+	for x in [-0.32, 0.32]:
+		part(g, box(0.1, 0.7, 0.14), wood, Vector3(x, 0.35, 0))
+	part(g, box(0.8, 0.08, 0.5), wood, Vector3(0, 0.04, 0))
+	part(g, cyl(0.12, 0.12, 0.56, 12), wood, Vector3(0, 0.55, 0), Vector3(0, 0, PI / 2))
+	part(g, cyl(0.16, 0.16, 0.42, 14), rope, Vector3(0, 0.55, 0), Vector3(0, 0, PI / 2))
+	for x in [-0.42, 0.42]:
+		part(g, cyl(0.025, 0.025, 0.14, 6), iron, Vector3(x, 0.55, 0), Vector3(0, 0, PI / 2))
+	_rod(g, Vector3(0.48, 0.55, 0), Vector3(0.48, 0.3, 0.12), 0.022, iron)   # crank
+	part(g, sphere(0.04, 6), wood, Vector3(0.48, 0.28, 0.13))
+	var hook := Node3D.new()
+	g.add_child(hook)
+	part(hook, cyl(0.035, 0.035, 0.7, 8), iron, Vector3(0, 0.35, 0))
+	part(hook, _tor(0.05, 0.08), iron, Vector3(0, 0.74, 0), Vector3(PI / 2, 0, 0))
+	part(hook, box(0.44, 0.05, 0.05), iron, Vector3(0, 0.6, 0))
+	for sx in [-1.0, 1.0]:
+		_rod(hook, Vector3(0, 0.03, 0), Vector3(sx * 0.26, 0.2, 0), 0.03, iron)
+		part(hook, prism(0.14, 0.14, 0.05), iron, Vector3(sx * 0.27, 0.26, 0), Vector3(0, 0, -sx * 0.5))
+	bake(hook)
+	var line := part(g, cyl(0.02, 0.02, 1.0, 5), rope, Vector3(0, 0, 0))
+	line.visible = false
+	bake(g, [hook, line])
+	return {"node": g, "hook": hook, "line": line}
+
+
+## Outboard engine: a metal housing with a fuel can, exhaust pipe, and a shaft down to a propeller
+## ("prop", spun while running); "lamp" glows while it runs.
+static func engine() -> Dictionary:
+	var g := Node3D.new()
+	var body := tm(Color("b8402c"), "metal", 0.45, 2.0)
+	body.metallic = 0.3
+	var dark := tm(Color("33383d"), "metal", 0.55, 2.0)
+	dark.metallic = 0.5
+	var steel := tm(Color("8d949a"), "metal", 0.4, 2.5)
+	steel.metallic = 0.7
+	var wood := tm(Color("7a5232"), "planks", 0.9, 2.0)
+	part(g, box(0.9, 0.08, 0.7), wood, Vector3(0, 0.04, 0))
+	part(g, box(0.62, 0.42, 0.5), body, Vector3(0, 0.3, 0))
+	part(g, cyl(0.25, 0.25, 0.5, 16), body, Vector3(0, 0.52, 0), Vector3(0, 0, PI / 2), Vector3(1, 1, 0.9))
+	for k in 5:
+		part(g, box(0.64, 0.02, 0.03), dark, Vector3(0, 0.22 + k * 0.06, 0.255))   # cooling fins
+	part(g, cyl(0.06, 0.06, 0.12, 10), steel, Vector3(0, 0.81, 0))
+	part(g, cyl(0.04, 0.05, 0.5, 8), dark, Vector3(0.24, 0.85, -0.18))
+	part(g, cyl(0.06, 0.04, 0.08, 8), dark, Vector3(0.24, 1.12, -0.18))
+	# wood-fuel hopper on the side
+	part(g, box(0.28, 0.34, 0.28), steel, Vector3(-0.5, 0.25, 0.08))
+	for k in 3:
+		part(g, cyl(0.035, 0.035, 0.3, 6), tm(Color("6a4a2a"), "bark", 0.95, 3.0), Vector3(-0.5 + (k - 1) * 0.07, 0.45, 0.08), Vector3(PI / 2, 0, 0))
+	# shaft to the propeller, under the raft
+	_rod(g, Vector3(0, 0.1, -0.3), Vector3(0, -0.75, -0.55), 0.04, dark)
+	part(g, cyl(0.07, 0.07, 0.3, 10), dark, Vector3(0, -0.78, -0.62), Vector3(PI / 2, 0, 0))
+	var prop := Node3D.new()
+	prop.position = Vector3(0, -0.78, -0.8)
+	g.add_child(prop)
+	part(prop, sphere(0.06, 8), steel)
+	for k in 3:
+		var blade := part(prop, box(0.08, 0.26, 0.02), steel, Vector3.ZERO)
+		blade.rotation = Vector3(0, 0.4, TAU * k / 3.0)
+		blade.position = Vector3(sin(TAU * k / 3.0) * -0.13, cos(TAU * k / 3.0) * 0.13, 0)
+	bake(prop)
+	var lamp := part(g, sphere(0.045, 8), _glow(Color("7dff6a"), 2.5), Vector3(0.2, 0.6, 0.26))
+	lamp.visible = false
+	part(g, sphere(0.045, 8), mat(Color("2a3a2a")), Vector3(0.2, 0.6, 0.255))
+	bake(g, [prop, lamp])
+	return {"node": g, "prop": prop, "lamp": lamp}

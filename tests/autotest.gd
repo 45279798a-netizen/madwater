@@ -654,5 +654,144 @@ func _process(_d: float) -> void:
 			game._on_recipe("knob_show_fps")
 			DirAccess.remove_absolute(Gfx.PATH)
 			game._close_sheet()
+		1014:
+			# ---- metal tier: smelter, better tools and self-running devices
+			game._on_action("start_survival")
+			game.shark.timer = 999.0
+			for k in ["wood", "rope", "plastic", "clay", "sand", "palm"]:
+				game.inv[k] = 99
+			game.inv["ore"] = 10
+			game.S["bag"] = 200     # room for all of the above
+			for c in [Vector2i(2, 0), Vector2i(2, 1), Vector2i(-1, 0), Vector2i(-1, 1), Vector2i(0, 2), Vector2i(1, 2), Vector2i(3, 0)]:
+				game._set_build("floor"); game._tap_ghost(c)
+			game._set_build("smelter"); game._tap_ghost(Vector2i(2, 0))
+			var sm = game.tiles[Vector2i(2, 0)].obj
+			check("smelter built", sm != null and sm.kind == "smelter")
+			game.P["x"] = 2.0 * Models.TILE; game.P["z"] = 0.0
+			game._tap_smelter(sm, pw())
+			check("smelter asks what to smelt", game.sheet_mode == "smelt" and game.hud.sheet.visible)
+			var w0: int = game.inv["wood"]
+			var s0: int = game.inv["sand"]
+			for i in 3:
+				game._on_recipe("smelt_ore")
+			game._on_recipe("smelt_sand")
+			game._on_recipe("smelt_sand")
+			check("smelter holds 4 batches", sm.slots.size() == 4 and game.inv["ore"] == 7 and game.inv["sand"] == s0 - 2 and game.inv["wood"] == w0 - 4)
+			game._close_sheet()
+			for sl in sm.slots:
+				sl[0] = 0.05
+		1018:
+			var sm = game.tiles[Vector2i(2, 0)].obj
+			check("smelted 3 ingots and glass", int(sm.done.get("ingot", 0)) == 3 and int(sm.done.get("glass", 0)) == 1 and sm.bars.visible)
+			game._tap_smelter(sm, pw())
+			check("took the bars", game.inv["ingot"] == 3 and game.inv["glass"] == 1 and game.S["smelted"] == 4 and sm.done.is_empty())
+			game.inv["ingot"] = 40; game.inv["glass"] = 10; game.inv["wood"] = 99
+			game._on_action("craft")
+			for r in ["mhook", "canteen", "flippers", "o2tank", "mspear"]:
+				game._on_recipe(r)
+			game._close_sheet()
+			check("metal tools crafted", game.inv["mhook"] == 1 and game.inv["canteen"] == 1 and game.inv["flippers"] == 1 and game.inv["o2tank"] == 1 and game.inv["mspear"] == 1)
+			check("metal hook reaches 4 m further", is_equal_approx(game._hook_range(), game.HOOK_RANGE + 0.5 * game._lv("hook") + 4.0))
+			check("canteen holds 3 cups", game._cups() == game.inv["cup"] + 3)
+			check("oxygen tank adds 30 s", is_equal_approx(game._o2_max(), game.O2_BASE + 3.0 * game._lv("swim") + 30.0))
+			for spec in [["purifier", Vector2i(2, 1)], ["bgrill", Vector2i(-1, 0)], ["engine", Vector2i(-1, 1)], ["field", Vector2i(1, 2)], ["sprinkler", Vector2i(0, 2)], ["anchor", Vector2i(3, 0)]]:
+				game._set_build(spec[0]); game._tap_ghost(spec[1])
+			game._set_build("")
+			check("metal devices built", game._objs_of("purifier").size() == 1 and game._objs_of("bgrill").size() == 1 and game._objs_of("engine").size() == 1
+				and game._objs_of("sprinkler").size() == 1 and game._objs_of("anchor").size() == 1)
+			var wn: Vector2i = game._free_water_near(Vector2i(0, -3))
+			game._set_build("colnet"); game._tap_ghost(wn)
+			check("collection net floats on the sea", game.sea.has(wn) and game.sea[wn].obj.kind == "colnet" and game.build_mode == "colnet")
+			var wt: Vector2i = game._free_water_near(Vector2i(4, 3))
+			game._set_build("fishtrap"); game._tap_ghost(wt)
+			game._set_build("")
+			check("fish trap floats on the sea", game.sea.has(wt) and game.sea[wt].obj.kind == "fishtrap")
+			# purifier
+			var pu = game._objs_of("purifier")[0]
+			game.P["x"] = 2.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			game._tap_still(pu, pw())
+			check("purifier burns 90 s per plank", is_equal_approx(pu.fuel, 90.0))
+			pu.prog = 7.9
+			# metal grill: four at once
+			var bg = game._objs_of("bgrill")[0]
+			game.inv["rawfish"] = 5
+			game.P["x"] = -1.0 * Models.TILE; game.P["z"] = 0.0
+			for i in 5:
+				game._tap_grill(bg, pw())
+			check("metal grill takes 4", bg.slots.size() == 4 and game.inv["rawfish"] == 1 and is_equal_approx(bg.slots[0][0], 8.0))
+			for sl in bg.slots:
+				sl[0] = 0.05
+			# fish trap, collection net
+			var tr = game.sea[wt].obj
+			tr.prog = game.TRAP_SEC - 0.05
+			var cn = game.sea[wn].obj
+			game._spawn_debris(true)
+			var d = game.debris[game.debris.size() - 1]
+			d.type = "plank"
+			d.x = game.raft_pos.x + wn.x * Models.TILE
+			d.z = game.raft_pos.y + wn.y * Models.TILE
+			game.set_meta("netd", d)
+			# sprinkler waters the field next to it
+			var fl = game.tiles[Vector2i(1, 2)].obj
+			fl.spots[0].crop = "potato"
+			fl.moist = 0.0
+			var sp = game._objs_of("sprinkler")[0]
+			game.inv["water"] = 5; game.inv["cup"] = 5
+			game.P["x"] = 0.0; game.P["z"] = 2.0 * Models.TILE
+			game._tap_sprinkler(sp, pw())
+			check("sprinkler filled", sp.water == 5 and game.inv["water"] == 0)
+			# engine
+			var en = game._objs_of("engine")[0]
+			game.raft_vel = Vector2.ZERO
+			game.P["x"] = -1.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			var wd: int = game.inv["wood"]
+			game._tap_engine(en, pw())
+			check("engine takes 5 planks and starts", en.on and is_equal_approx(en.fuel, game.ENGINE_MAX) and game.inv["wood"] == wd - 5)
+		1046:
+			var pu = game._objs_of("purifier")[0]
+			check("purifier made water", pu.water >= 1)
+			var bg = game._objs_of("bgrill")[0]
+			check("metal grill cooked 4 fish", int(bg.done.get("cooked", 0)) == 4)
+			var tr = game._objs_of("fishtrap")[0]
+			check("fish trap caught a fish", tr.fish == 1 and tr.fishes[0].visible)
+			var cn = game._objs_of("colnet")[0]
+			check("collection net caught the plank", cn.count >= 1 and int(cn.store.get("wood", 0)) >= 2 and not game.debris.has(game.get_meta("netd")) and game.S["netted"] == cn.count)
+			var fl = game.tiles[Vector2i(1, 2)].obj
+			var sp = game._objs_of("sprinkler")[0]
+			check("sprinkler watered the field", fl.moist > 0.9 and sp.water == 4)
+			var en = game._objs_of("engine")[0]
+			check("engine pushes the raft without wind", game.raft_vel.length() > 0.05 and en.fuel < game.ENGINE_MAX)
+			var g4: Array = game._goals()
+			check("upgrade goals done", g4.size() == 19 and g4[15][2] and g4[16][2] and g4[17][2] and g4[18][2])
+			# collect from the net and the trap
+			var wood0: int = game.inv["wood"] + int(cn.store.get("wood", 0))
+			game.P["x"] = cn.tile.cell.x * Models.TILE * 0.7; game.P["z"] = cn.tile.cell.y * Models.TILE * 0.7
+			game._tap_colnet(cn, pw())
+			check("emptied the net", game.inv["wood"] == wood0 and cn.count == 0 and cn.store.is_empty())
+			var f0: int = game.inv["rawfish"]
+			game.P["x"] = tr.tile.cell.x * Models.TILE * 0.7; game.P["z"] = tr.tile.cell.y * Models.TILE * 0.7
+			game._tap_trap(tr, pw())
+			check("pulled up the trap", game.inv["rawfish"] == f0 + 1 and tr.fish == 0)
+			game.P["x"] = -1.0 * Models.TILE; game.P["z"] = 1.0 * Models.TILE
+			game._tap_engine(en, pw())
+			check("engine stops", not en.on)
+			var an = game._objs_of("anchor")[0]
+			game.P["x"] = 3.0 * Models.TILE; game.P["z"] = 0.0
+			game._tap_anchor(an, pw())
+			check("anchor dropped", an.down)
+			cn.store = {"plastic": 3}; cn.count = 2
+			game._save_game()
+			game._reset()
+			game._load_game()
+			var cn2 = game._objs_of("colnet")
+			check("new devices survive a save", game._objs_of("smelter").size() == 1 and game._objs_of("engine").size() == 1
+				and cn2.size() == 1 and game.sea.has(cn2[0].tile.cell) and int(cn2[0].store.get("plastic", 0)) == 3
+				and game._objs_of("anchor")[0].down and game.inv["mhook"] == 1)
+			game.raft_vel = Vector2(1.5, 0.0)
+			for i in 3:
+				game._sail(0.5, game._raft_center())
+			check("anchor holds the raft", game.raft_vel.length() < 0.2)
+		1106:
+			check("anchor hangs in the water", game._objs_of("anchor")[0].line.visible)
 			print("AUTOTEST DONE, %d failures" % fails)
 			get_tree().quit()

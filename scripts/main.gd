@@ -31,20 +31,26 @@ const ITEMS := {
 	"bpotato": "烤馬鈴薯", "fegg": "荷包蛋", "tjuice": "番茄汁", "mjuice": "西瓜汁",
 	"seed_potato": "馬鈴薯種子", "seed_tomato": "番茄種子", "seed_melon": "西瓜種子", "chicken": "雞", "goat": "山羊",
 	"shell": "貝殼幣", "bait": "魚餌", "rod2": "好釣竿",
+	"ingot": "金屬錠", "glass": "玻璃", "mhook": "金屬鉤子", "canteen": "水壺", "flippers": "蛙鞋", "o2tank": "氧氣瓶",
 }
 const ORDER := ["shell", "bait", "rod2", "seed_potato", "seed_tomato", "seed_melon", "potato", "tomato", "melon", "kelp", "egg", "milk",
-	"bpotato", "fegg", "tjuice", "mjuice", "chicken", "goat", "wood", "plastic", "palm", "rope", "sand", "clay", "ore", "coconut", "rawfish", "cooked", "cup", "water", "spear", "mspear", "rod", "goggles"]
+	"bpotato", "fegg", "tjuice", "mjuice", "chicken", "goat", "wood", "plastic", "palm", "rope", "sand", "clay", "ore", "coconut", "rawfish", "cooked", "cup", "canteen", "water", "ingot", "glass", "spear", "mspear", "rod", "goggles", "mhook", "flippers", "o2tank"]
 const CRAFT := [
 	{"id": "rope", "name": "繩子", "desc": "用來做工具和設備", "cost": {"palm": 2}, "give": {"rope": 1}},
 	{"id": "cup", "name": "塑膠杯", "desc": "裝 1 杯淡水，杯子越多能帶越多水", "cost": {"plastic": 2}, "give": {"cup": 1}},
 	{"id": "spear", "name": "木矛", "desc": "點擊靠近的鯊魚刺牠，刺 3 下就會逃走", "cost": {"wood": 6, "rope": 2}, "give": {"spear": 1}, "once": true},
 	{"id": "rod", "name": "釣竿", "desc": "點木筏旁的海面拋竿，浮標下沉時按 R 收竿", "cost": {"wood": 4, "rope": 3}, "give": {"rod": 1}, "once": true},
 	{"id": "goggles", "name": "潛水鏡", "desc": "水裡看得清楚，才能挖沙、黏土和金屬礦", "cost": {"plastic": 4, "rope": 1}, "give": {"goggles": 1}, "once": true},
-	{"id": "mspear", "name": "金屬矛", "desc": "刺一下的傷害是木矛的 2 倍", "cost": {"ore": 3, "wood": 2, "rope": 1}, "give": {"mspear": 1}, "once": true},
+	{"id": "mspear", "name": "金屬矛", "desc": "刺一下的傷害是木矛的 2 倍（金屬錠在熔爐煉）", "cost": {"ingot": 2, "wood": 2, "rope": 1}, "give": {"mspear": 1}, "once": true},
+	{"id": "mhook", "name": "金屬鉤子", "desc": "鉤子範圍 +4 公尺，丟得快、收得快 1.5 倍", "cost": {"ingot": 2, "rope": 2, "wood": 2}, "give": {"mhook": 1}, "once": true},
+	{"id": "canteen", "name": "水壺", "desc": "一個裝 3 杯淡水（跟塑膠杯一起算）", "cost": {"ingot": 1, "plastic": 3}, "give": {"canteen": 1}},
+	{"id": "flippers", "name": "蛙鞋", "desc": "游泳和潛水快 40%", "cost": {"plastic": 6, "rope": 2}, "give": {"flippers": 1}, "once": true},
+	{"id": "o2tank", "name": "氧氣瓶", "desc": "潛水的氧氣 +30 秒", "cost": {"ingot": 3, "plastic": 4, "glass": 1}, "give": {"o2tank": 1}, "once": true},
 	{"id": "tjuice", "name": "番茄汁", "desc": "口渴 +15、飢餓 +5", "cost": {"tomato": 2}, "give": {"tjuice": 1}},
 	{"id": "mjuice", "name": "西瓜汁", "desc": "口渴 +40", "cost": {"melon": 1}, "give": {"mjuice": 2}},
 	{"id": "bag30", "name": "帆布背包", "desc": "背包從 20 格擴到 30 格", "cost": {"palm": 10, "rope": 4}, "give": {}, "bag": 30},
 	{"id": "bag40", "name": "防水背包", "desc": "擴到 40 格；去過 2 座小島才會做", "cost": {"plastic": 10, "rope": 6, "wood": 2}, "give": {}, "bag": 40},
+	{"id": "bag50", "name": "探險家背包", "desc": "擴到 50 格；要先有防水背包", "cost": {"ingot": 4, "plastic": 10, "rope": 6}, "give": {}, "bag": 50},
 ]
 const BUILD := [
 	{"id": "floor", "name": "地板", "desc": "擴建木筏 1 格", "cost": {"wood": 4, "plastic": 2}},
@@ -70,15 +76,37 @@ const BUILD := [
 	{"id": "turtletank", "name": "海龜水槽", "desc": "收服的海龜休息的地方", "cost": {"plastic": 4, "wood": 2, "clay": 2}},
 	{"id": "catcher", "name": "集雨布", "desc": "下雨時接雨水，最多存 4 杯；要放在沒有屋頂的地方", "cost": {"plastic": 4, "wood": 4, "rope": 2}},
 	{"id": "filter", "name": "陶瓷濾水缸", "desc": "不用柴火，每 30 秒濾出 1 杯淡水，最多存 3 杯", "cost": {"clay": 6, "sand": 4, "wood": 2}},
+	{"id": "smelter", "name": "熔爐", "desc": "燒木板把金屬礦煉成金屬錠、把沙燒成玻璃；更好的工具和設備都要用到", "cost": {"clay": 8, "sand": 4, "wood": 4}},
+	{"id": "colnet", "name": "收集網（每格）", "desc": "放在木筏旁邊的海面上，漂過來的東西會自動卡在網子裡，點它一次全拿", "cost": {"rope": 5, "wood": 4, "ingot": 1}},
+	{"id": "fishtrap", "name": "捕魚籠（每格）", "desc": "放在木筏旁邊的海面上，自己會抓魚；放魚餌抓得快一倍", "cost": {"rope": 3, "wood": 3, "plastic": 2}},
+	{"id": "purifier", "name": "進階淨水器", "desc": "1 塊木板燒 90 秒，每 8 秒 1 杯淡水，最多存 5 杯", "cost": {"ingot": 3, "glass": 2, "plastic": 4}},
+	{"id": "bgrill", "name": "金屬烤架", "desc": "一次烤 4 個，8 秒就好", "cost": {"ingot": 3, "clay": 2, "wood": 2}},
+	{"id": "sprinkler", "name": "灑水器", "desc": "裝滿淡水後，自動幫周圍 2 格內的菜田澆水", "cost": {"ingot": 2, "plastic": 4, "glass": 1}},
+	{"id": "anchor", "name": "船錨", "desc": "點它下錨，木筏停在原地不漂走（漂流物還是會漂過來）", "cost": {"ingot": 3, "rope": 4}},
+	{"id": "engine", "name": "引擎", "desc": "燒木板推船，不管風向都能照船舵的方向前進；點它發動 / 熄火", "cost": {"ingot": 6, "plastic": 4, "rope": 2, "wood": 4}},
 ]
-const SEA_KINDS := ["kelpfarm"]   ## built on the water beside the raft, not on the deck
+const SEA_KINDS := ["kelpfarm", "colnet", "fishtrap"]   ## built on the water beside the raft, not on the deck
 const OBJ_NAME := {"still": "蒸餾杯", "grill": "烤架", "sail": "船帆", "helm": "船舵", "chest": "儲物箱", "filter": "陶瓷濾水缸", "field": "菜田", "kelpfarm": "海藻養殖架", "coop": "雞舍", "pen": "山羊圍欄", "stairs": "樓梯", "catcher": "集雨布", "gullnest": "海鷗巢", "dolphinpost": "海豚韁繩柱", "turtletank": "海龜水槽",
+	"smelter": "熔爐", "colnet": "收集網", "fishtrap": "捕魚籠", "purifier": "進階淨水器", "bgrill": "金屬烤架", "sprinkler": "灑水器", "anchor": "船錨", "engine": "引擎",
 	"wall": "牆", "window": "窗牆", "door": "門", "pillar": "支柱", "upper": "二樓地板", "rail": "欄杆", "roof": "屋頂"}
 ## crop: [seed item, grow seconds (prototype speed), harvest item, harvest count]
 const CROPS := {"potato": ["seed_potato", 120.0, "potato", 3], "tomato": ["seed_tomato", 90.0, "tomato", 4], "melon": ["seed_melon", 180.0, "melon", 1]}
 const CROP_NAME := {"potato": "馬鈴薯", "tomato": "番茄", "melon": "西瓜"}
 ## raw item -> [grilled item, its name]
 const GRILL := {"rawfish": ["cooked", "烤魚"], "potato": ["bpotato", "烤馬鈴薯"], "egg": ["fegg", "荷包蛋"]}
+## grills: [seconds to cook, how many at once]
+const GRILLS := {"grill": [15.0, 2], "bgrill": [8.0, 4]}
+## stills: [seconds per cup, cups it holds, seconds of fire per plank]
+const STILLS := {"still": [20.0, 2, 40.0], "purifier": [8.0, 5, 90.0]}
+## smelter: raw item -> [product, raw per batch, seconds]; every batch also burns 1 plank
+const SMELT := {"ore": ["ingot", 1, 20.0], "sand": ["glass", 2, 15.0]}
+const SMELT_SLOTS := 4
+const NET_HOLD := 12         ## pieces of debris one collection net holds
+const TRAP_SEC := 75.0       ## a fish trap catches a fish this often (half with bait)
+const TRAP_HOLD := 3
+const ENGINE_FUEL := 60.0    ## seconds of engine per plank
+const ENGINE_MAX := 300.0
+const SPRINKLE_HOLD := 8
 ## food: [hunger, thirst]
 const FOOD := {"cooked": [38, 0], "fegg": [25, 0], "coconut": [22, 8], "bpotato": [20, 0], "rawfish": [12, 0], "potato": [8, 0], "tomato": [6, 4]}
 ## drink: [thirst, hunger]
@@ -95,7 +123,8 @@ const SKILLS := {
 }
 ## how many of an item fit in one backpack slot (water lives in the cups, so it takes none)
 const STACK := {"shell": 999, "bait": 20, "rod2": 1, "potato": 10, "tomato": 10, "melon": 5, "kelp": 20, "egg": 10, "milk": 5, "bpotato": 10, "fegg": 10,
-	"tjuice": 5, "mjuice": 5, "seed_potato": 20, "seed_tomato": 20, "seed_melon": 20, "chicken": 6, "goat": 3, "sand": 20, "clay": 20, "ore": 20, "goggles": 1, "mspear": 1, "wood": 20, "plastic": 20, "palm": 20, "rope": 20, "coconut": 10, "rawfish": 10, "cooked": 10, "cup": 10, "spear": 1, "rod": 1}
+	"tjuice": 5, "mjuice": 5, "seed_potato": 20, "seed_tomato": 20, "seed_melon": 20, "chicken": 6, "goat": 3, "sand": 20, "clay": 20, "ore": 20, "goggles": 1, "mspear": 1, "wood": 20, "plastic": 20, "palm": 20, "rope": 20, "coconut": 10, "rawfish": 10, "cooked": 10, "cup": 10, "spear": 1, "rod": 1,
+	"ingot": 20, "glass": 20, "mhook": 1, "canteen": 5, "flippers": 1, "o2tank": 1}
 const MODES := {"peaceful": "和平", "standard": "標準", "hardcore": "硬派", "creative": "創造"}
 const BAG_TTL := 600.0
 const DEBRIS := {
@@ -508,7 +537,7 @@ func _reset() -> void:
 	inv["wood"] = 2
 	inv["plastic"] = 1
 	S = {"thirst": 75.0, "hunger": 85.0, "health": 100.0, "wood_hooked": 0, "rope_made": 0,
-		"still_built": 0, "drank": 0, "fished": 0, "ate_cooked": 0, "repelled": 0, "islands": 0, "bag": 20, "dug": 0, "harvested": 0, "eggs": 0, "bred": 0, "trades": 0, "built_house": 0, "pets": 0}
+		"still_built": 0, "drank": 0, "fished": 0, "ate_cooked": 0, "repelled": 0, "islands": 0, "bag": 20, "dug": 0, "harvested": 0, "eggs": 0, "bred": 0, "trades": 0, "built_house": 0, "pets": 0, "smelted": 0, "netted": 0}
 	skills = {}
 	for k in SKILLS:
 		skills[k] = {"lv": 0, "xp": 0}
@@ -758,6 +787,22 @@ func _place(kind: String, t: Dictionary) -> void:
 			m = Models.dolphin_post()
 		"turtletank":
 			m = Models.turtle_tank()
+		"smelter":
+			m = Models.smelter()
+		"colnet":
+			m = Models.colnet()
+		"fishtrap":
+			m = Models.fishtrap()
+		"purifier":
+			m = Models.purifier()
+		"bgrill":
+			m = Models.bgrill()
+		"sprinkler":
+			m = Models.sprinkler()
+		"anchor":
+			m = Models.anchor()
+		"engine":
+			m = Models.engine()
 		_:
 			m = Models.helm()
 	var node: Node3D = m.node
@@ -769,21 +814,39 @@ func _place(kind: String, t: Dictionary) -> void:
 	o["kind"] = kind
 	o["tile"] = t
 	match kind:
-		"still":
+		"still", "purifier":
 			o["fuel"] = 0.0
 			o["water"] = 0
 			o["prog"] = 0.0
 			o["label"] = _label3d(node)
-		"filter", "catcher":
+		"filter", "catcher", "sprinkler":
 			o["water"] = 0
 			o["prog"] = 0.0
 			o["label"] = _label3d(node)
-		"grill":
+		"grill", "bgrill", "smelter":
 			o["slots"] = []
 			o["done"] = {}
 			o["label"] = _label3d(node)
 		"sail":
 			o["up"] = false
+		"colnet":
+			o["store"] = {}
+			o["count"] = 0
+			o["label"] = _label3d(node)
+			o.label.position.y = 0.9
+		"fishtrap":
+			o["fish"] = 0
+			o["bait"] = 0
+			o["prog"] = 0.0
+			o["label"] = _label3d(node)
+			o.label.position.y = 1.5
+		"anchor":
+			o["down"] = false
+			o["label"] = _label3d(node)
+		"engine":
+			o["on"] = false
+			o["fuel"] = 0.0
+			o["label"] = _label3d(node)
 	t.obj = o
 	objs.append(o)
 	if Farm.is_farm(kind):
@@ -979,7 +1042,7 @@ func _refill() -> void:
 	if not creative:
 		return
 	for k in ["wood", "plastic", "palm", "rope", "coconut", "rawfish", "cooked", "cup", "sand", "clay", "ore", "kelp",
-			"seed_potato", "seed_tomato", "seed_melon"]:
+			"seed_potato", "seed_tomato", "seed_melon", "ingot", "glass"]:
 		inv[k] = 99
 	inv["goggles"] = 1
 	inv["water"] = maxi(inv["water"], 20)
@@ -1024,7 +1087,22 @@ func _gain(k: String, xp: int) -> void:
 
 
 func _hook_range() -> float:
-	return HOOK_RANGE + 0.5 * _lv("hook")
+	return HOOK_RANGE + 0.5 * _lv("hook") + (4.0 if inv["mhook"] > 0 else 0.0)
+
+
+## How many cups of fresh water can be carried: one per plastic cup, three per canteen.
+func _cups() -> int:
+	return inv["cup"] + 3 * inv["canteen"]
+
+
+func _no_room_for_water() -> bool:
+	if _cups() < 1:
+		hud.toast("需要塑膠杯或水壺才能裝水（合成 → 塑膠杯）")
+		return true
+	if inv["water"] >= _cups():
+		hud.toast("杯子和水壺都裝滿了，先喝一點或多做幾個")
+		return true
+	return false
 
 
 func _bite_wait() -> float:
@@ -1072,7 +1150,7 @@ func _refresh_inv() -> void:
 			continue
 		if creative and inv[k] >= 99:
 			continue
-		var v: String = ("%d/%d" % [inv["water"], inv["cup"]]) if k == "water" else str(inv[k])
+		var v: String = ("%d/%d" % [inv["water"], _cups()]) if k == "water" else str(inv[k])
 		parts.append("%s\u00a0%s" % [ITEMS[k], v])
 	var head := ("背包\u00a0%d/%d\u00a0格" % [_slots_used(), _capacity()]) if not creative else "創造模式：基本材料無限"
 	hud.inv_label.text = "   ".join([head] + parts)
@@ -1107,6 +1185,10 @@ func _goals() -> Array:
 		["跟商船做一次交易", "商船會不定時靠過來，點它用貝殼幣買賣（貝殼幣：賣東西、潛水挖、開木箱）", S["trades"] >= 1],
 		["養雞撿到第一顆蛋", "用鉤子撈漂來的雞籠，蓋雞舍、餵海帶", S["eggs"] >= 1],
 		["揚帆航行到第一座小島", "升帆、掌舵，跟著左上角的箭頭走" if has_rig else "建造 → 船帆和船舵", S["islands"] >= 1],
+		["蓋熔爐，煉出第一塊金屬錠", "建造 → 熔爐（黏土、沙），放潛水挖到的金屬礦和木板進去", S["smelted"] >= 1],
+		["做一支金屬鉤子", "合成 → 金屬鉤子：撿得更遠、收得更快", inv["mhook"] > 0],
+		["用收集網自動撈到漂流物", "建造 → 收集網，放在木筏旁漂流物漂過來的海面", S["netted"] >= 1],
+		["裝上引擎，不靠風開船", "建造 → 引擎，點它加木板發動，再去掌舵", not _objs_of("engine").is_empty() and _objs_of("engine").any(func(x): return x.on or x.fuel > 0.0)],
 	]
 
 
@@ -1142,7 +1224,7 @@ func _open_sheet(mode: String) -> void:
 	if mode == "craft":
 		for r in CRAFT:
 			var owned: bool = (r.get("once", false) and inv[r.id] > 0) or (r.has("bag") and int(S["bag"]) >= r.bag)
-			var locked: bool = r.get("bag", 0) == 40 and (S["islands"] < 2 or int(S["bag"]) < 30)
+			var locked: bool = (r.get("bag", 0) == 40 and (S["islands"] < 2 or int(S["bag"]) < 30)) or (r.get("bag", 0) == 50 and int(S["bag"]) < 40)
 			rows.append({"id": r.id, "name": r.name, "desc": r.desc, "cost_text": _cost_text(r.cost),
 				"ok": _has(r.cost) and not owned and not locked, "label": "已擁有" if owned else ("未解鎖" if locked else "合成")})
 		hud.show_sheet("合成", rows)
@@ -1184,6 +1266,17 @@ func _open_sheet(mode: String) -> void:
 				"cost_text": "", "ok": false, "label": ""})
 		rows.append({"id": "leave_room", "name": "離開房間", "desc": "房主離開時房間會關掉，大家回到開始畫面（房主的存檔還在）" if net.is_host() else "回到開始畫面，你這次的背包不會留下", "cost_text": "", "ok": true, "label": "離開"})
 		hud.show_sheet("房間 %s · %d 人" % [net.code, net.player_count()], rows)
+	elif mode == "smelt":
+		var sm = get_meta("smelting") if has_meta("smelting") else null
+		if sm == null or not objs.has(sm):
+			return
+		for raw in SMELT:
+			var sp: Array = SMELT[raw]
+			rows.append({"id": "smelt_" + raw, "name": "%s → %s" % [ITEMS[raw], ITEMS[sp[0]]],
+				"desc": "%s ×%d ＋ 木板 ×1，%d 秒（你有 %s %d）" % [ITEMS[raw], sp[1], int(sp[2]), ITEMS[raw], inv[raw]],
+				"cost_text": "爐裡 %d / %d" % [sm.slots.size(), SMELT_SLOTS],
+				"ok": (creative or (inv[raw] >= sp[1] and inv["wood"] >= 1)) and sm.slots.size() < SMELT_SLOTS, "label": "放進去"})
+		hud.show_sheet("熔爐：煉什麼？（可以連按）", rows)
 	elif mode == "pets":
 		rows = companions.sheet_rows()
 		if rows.is_empty():
@@ -1339,6 +1432,10 @@ func _on_recipe(id: String) -> void:
 	if sheet_mode == "plant":
 		if has_meta("planting"):
 			farm.plant(get_meta("planting"), id)
+		return
+	if sheet_mode == "smelt":
+		if has_meta("smelting") and id.begins_with("smelt_"):
+			_smelt(get_meta("smelting"), id.substr(6))
 		return
 	if sheet_mode == "craft":
 		for r in CRAFT:
@@ -1546,10 +1643,22 @@ func _tap_ghost(c: Vector2i) -> void:
 				hud.toast("集雨布放好了，下雨時會接雨水（上面不能有屋頂）")
 			"filter":
 				hud.toast("陶瓷濾水缸放好了，每 30 秒濾出 1 杯淡水")
+			"smelter":
+				hud.toast("熔爐蓋好了，點它把金屬礦或沙放進去煉")
+			"purifier":
+				hud.toast("進階淨水器蓋好了，點它添木板")
+			"bgrill":
+				hud.toast("金屬烤架蓋好了，一次可以烤 4 個")
+			"sprinkler":
+				hud.toast("灑水器放好了，點它倒淡水進去，會自動澆旁邊的菜田")
+			"anchor":
+				hud.toast("船錨裝好了，點它下錨或起錨")
+			"engine":
+				hud.toast("引擎裝好了，點它加木板發動")
 		if build_mode == "stairs":
 			_aim_stairs(tiles[c].obj)
 			hud.toast("樓梯蓋好了，點它上樓")
-		if Farm.is_farm(build_mode):
+		if Farm.is_farm(build_mode) or build_mode in SEA_KINDS:
 			var n := 0
 			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 				var nb = cell_at(c + d)
@@ -1751,16 +1860,28 @@ func _tap(pos: Vector2) -> void:
 			"companion":
 				companions.tap(hit.ref, pw)
 		return
-	if build_mode == "demolish" and hit.kind in ["still", "grill", "sail", "helm", "chest", "filter", "catcher", "field", "kelpfarm", "coop", "pen", "stairs", "gullnest", "dolphinpost", "turtletank"]:
+	if build_mode == "demolish" and OBJ_NAME.has(hit.kind) and not Shelter.is_mode(hit.kind):
 		_tap_ghost(hit.ref.tile.cell)
 		return
 	match hit.kind:
 		"ghost":
 			_tap_ghost(hit.ref)
-		"still":
+		"still", "purifier":
 			_tap_still(hit.ref, pw)
-		"grill":
+		"grill", "bgrill":
 			_tap_grill(hit.ref, pw)
+		"smelter":
+			_tap_smelter(hit.ref, pw)
+		"colnet":
+			_tap_colnet(hit.ref, pw)
+		"fishtrap":
+			_tap_trap(hit.ref, pw)
+		"sprinkler":
+			_tap_sprinkler(hit.ref, pw)
+		"anchor":
+			_tap_anchor(hit.ref, pw)
+		"engine":
+			_tap_engine(hit.ref, pw)
 		"filter", "catcher":
 			_tap_filter(hit.ref, pw)
 		"field", "kelpfarm", "coop", "pen":
@@ -1806,12 +1927,9 @@ func _near(o: Dictionary, pw: Vector3, what: String) -> bool:
 func _tap_still(s: Dictionary, pw: Vector3) -> void:
 	if not _near(s, pw, "操作蒸餾杯"):
 		return
+	var spec: Array = STILLS[s.kind]
 	if s.water > 0:
-		if inv["cup"] < 1:
-			hud.toast("需要塑膠杯才能裝水（合成 → 塑膠杯）")
-			return
-		if inv["water"] >= inv["cup"]:
-			hud.toast("杯子都裝滿了，先喝一杯或多做幾個杯子")
+		if _no_room_for_water():
 			return
 		s.water -= 1
 		inv["water"] += 1
@@ -1819,7 +1937,7 @@ func _tap_still(s: Dictionary, pw: Vector3) -> void:
 		hud.toast("+1 淡水")
 		_refresh_inv()
 		return
-	if s.fuel > 80.0:
+	if s.fuel > spec[2] * 2.0:
 		hud.toast("柴火還夠，等水蒸好")
 		return
 	if inv["wood"] < 1:
@@ -1827,8 +1945,8 @@ func _tap_still(s: Dictionary, pw: Vector3) -> void:
 		return
 	if not creative:
 		inv["wood"] -= 1
-	s.fuel += 40.0
-	hud.toast("添了柴火（+40 秒）")
+	s.fuel += spec[2]
+	hud.toast("添了柴火（+%d 秒）" % int(spec[2]))
 	_refresh_inv()
 
 
@@ -1844,7 +1962,8 @@ func _tap_grill(g: Dictionary, pw: Vector3) -> void:
 		g.done = {}
 		_refresh_inv()
 		return
-	if g.slots.size() >= 2:
+	var spec: Array = GRILLS[g.kind]
+	if g.slots.size() >= spec[1]:
 		hud.toast("烤架滿了，等東西烤好")
 		return
 	var raw := ""
@@ -1861,8 +1980,8 @@ func _tap_grill(g: Dictionary, pw: Vector3) -> void:
 	if not creative:
 		inv[raw] -= 1
 		inv["wood"] -= 1
-	g.slots.append([15.0, raw])
-	hud.toast("開始烤%s（15 秒）" % ITEMS[raw])
+	g.slots.append([spec[0], raw])
+	hud.toast("開始烤%s（%d 秒）" % [ITEMS[raw], int(spec[0])])
 	_refresh_inv()
 
 
@@ -1883,8 +2002,8 @@ func _tap_helm(h: Dictionary, pw: Vector3) -> void:
 		return
 	if not _near(h, pw, "掌舵"):
 		return
-	if _objs_of("sail").filter(func(x): return x.up).is_empty():
-		hud.toast("先升起船帆，木筏才會動")
+	if _objs_of("sail").filter(func(x): return x.up).is_empty() and not _objs_of("engine").any(func(x): return x.on):
+		hud.toast("先升起船帆或發動引擎，木筏才會動")
 	_end_fishing()
 	steer = h
 	_steer_text = ""
@@ -1998,11 +2117,7 @@ func _tap_filter(o: Dictionary, pw: Vector3) -> void:
 	if o.water < 1:
 		hud.toast("還在過濾，%d 秒後有一杯" % ceili(30.0 * (1.0 - 0.03 * _lv("water")) - o.prog))
 		return
-	if inv["cup"] < 1:
-		hud.toast("需要塑膠杯才能裝水（合成 → 塑膠杯）")
-		return
-	if inv["water"] >= inv["cup"]:
-		hud.toast("杯子都裝滿了，先喝一杯或多做幾個杯子")
+	if _no_room_for_water():
 		return
 	o.water -= 1
 	inv["water"] += 1
@@ -2010,6 +2125,158 @@ func _tap_filter(o: Dictionary, pw: Vector3) -> void:
 	sfx.play("drink", null, -8.0)
 	hud.toast("+1 淡水")
 	_refresh_inv()
+
+
+# ---------------------------------------------------------------- upgrades
+
+func _tap_smelter(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "用熔爐"):
+		return
+	if not o.done.is_empty():
+		if not _fits(o.done):
+			_full_toast()
+			return
+		S["smelted"] += int(o.done.get("ingot", 0)) + int(o.done.get("glass", 0))
+		hud.toast("從熔爐拿到 " + _give(o.done))
+		sfx.play("craft")
+		o.done = {}
+		_refresh_inv()
+		return
+	if o.slots.size() >= SMELT_SLOTS:
+		hud.toast("熔爐滿了，等它煉好")
+		return
+	set_meta("smelting", o)
+	_set_build("")
+	_open_sheet("smelt")
+
+
+func _smelt(o: Dictionary, raw: String) -> void:
+	if not SMELT.has(raw) or not objs.has(o):
+		return
+	var sp: Array = SMELT[raw]
+	if o.slots.size() >= SMELT_SLOTS:
+		hud.toast("熔爐滿了（最多 %d 份）" % SMELT_SLOTS)
+		return
+	if not creative and (inv[raw] < sp[1] or inv["wood"] < 1):
+		hud.toast("需要 %s ×%d 和 1 塊木板當柴火" % [ITEMS[raw], sp[1]])
+		return
+	if not creative:
+		inv[raw] -= sp[1]
+		inv["wood"] -= 1
+	o.slots.append([sp[2], raw])
+	hud.toast("放進熔爐：%s ×%d，%d 秒後變成%s" % [ITEMS[raw], sp[1], int(sp[2]), ITEMS[sp[0]]])
+	sfx.play("build", null, -8.0)
+	_refresh_inv()
+
+
+func _tap_colnet(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "收網"):
+		return
+	if o.store.is_empty():
+		hud.toast("網子還是空的。漂流物漂過網子就會卡住，放在木筏「下游」那一側最有用")
+		return
+	var got := {}
+	for k in o.store:
+		got[k] = int(o.store[k])
+	if not _fits(got):
+		_full_toast()
+		return
+	_gain("hook", 1)
+	hud.toast("收網：" + _give(got))
+	sfx.play("pickup")
+	o.store = {}
+	o.count = 0
+	_refresh_inv()
+
+
+func _tap_trap(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "拉起捕魚籠"):
+		return
+	if o.fish > 0:
+		if not _fits({"rawfish": o.fish}):
+			_full_toast()
+			return
+		S["fished"] += 1
+		hud.toast("拉起捕魚籠：" + _give({"rawfish": o.fish}))
+		sfx.play("catch")
+		o.fish = 0
+		_refresh_inv()
+		return
+	if inv["bait"] > 0 and o.bait < 5:
+		var n: int = mini(5 - o.bait, inv["bait"])
+		inv["bait"] -= n
+		o.bait += n
+		hud.toast("放了 %d 個魚餌進籠子，抓魚快一倍" % n)
+		_refresh_inv()
+		return
+	hud.toast("籠子裡還沒有魚，大約 %d 秒後會抓到一條" % ceili((TRAP_SEC - o.prog) / (2.0 if o.bait > 0 else 1.0)))
+
+
+func _tap_sprinkler(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "加水"):
+		return
+	var n: int = mini(SPRINKLE_HOLD - o.water, inv["water"])
+	if n <= 0:
+		hud.toast("灑水器滿了" if o.water >= SPRINKLE_HOLD else "需要淡水才能加進灑水器")
+		return
+	inv["water"] -= n
+	o.water += n
+	hud.toast("倒了 %d 杯淡水進灑水器（%d / %d）" % [n, o.water, SPRINKLE_HOLD])
+	sfx.play("drink", null, -8.0)
+	_refresh_inv()
+
+
+func _tap_anchor(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "操作船錨"):
+		return
+	o.down = not o.down
+	sfx.play("splash" if o.down else "reel")
+	hud.toast("下錨了，木筏會停在這裡" if o.down else "起錨了")
+
+
+func _tap_engine(o: Dictionary, pw: Vector3) -> void:
+	if not _near(o, pw, "操作引擎"):
+		return
+	if o.on:
+		o.on = false
+		hud.toast("引擎熄火了（燃料還有 %d 秒）" % ceili(o.fuel))
+		return
+	var planks: int = floori((ENGINE_MAX - o.fuel) / ENGINE_FUEL)
+	if not creative:
+		planks = mini(planks, inv["wood"])
+	if planks > 0:
+		if not creative:
+			inv["wood"] -= planks
+		o.fuel += planks * ENGINE_FUEL
+	if o.fuel <= 0.0:
+		hud.toast("引擎需要木板當燃料")
+		return
+	o.on = true
+	sfx.play("whoosh", null, 0.0, 0.2)
+	hud.toast("引擎發動！%s燃料 %d 秒%s" % [("加了 %d 塊木板，" % planks) if planks > 0 else "", ceili(o.fuel),
+		"，去船舵掌舵" if not _objs_of("helm").is_empty() else "，沒有船舵會直直往前開"])
+	_refresh_inv()
+
+
+## Host: a collection net catches drifting debris that floats into it.
+func _net_catch(d: Dictionary) -> bool:
+	if d.state != "drift" or d.type == "bag":
+		return false
+	for o in objs:
+		if o.kind != "colnet" or o.count >= NET_HOLD:
+			continue
+		var nx: float = raft_pos.x + o.tile.cell.x * TILE
+		var nz: float = raft_pos.y + o.tile.cell.y * TILE
+		if absf(d.x - nx) < TILE * 0.5 + 0.9 and absf(d.z - nz) < TILE * 0.5 + 0.9:
+			for k in DEBRIS[d.type].give:
+				o.store[k] = int(o.store.get(k, 0)) + int(DEBRIS[d.type].give[k])
+			o.count += 1
+			S["netted"] += 1
+			ocean.ripple(d.x, d.z, 0.5)
+			if o.count == NET_HOLD:
+				hud.toast("有一張收集網滿了，去收網")
+			return true
+	return false
 
 
 # ---------------------------------------------------------------- houses
@@ -2147,7 +2414,7 @@ func _grab_debris(d: Dictionary, pw: Vector3) -> void:
 
 
 func _o2_max() -> float:
-	return O2_BASE + 3.0 * _lv("swim")
+	return O2_BASE + 3.0 * _lv("swim") + (30.0 if inv["o2tank"] > 0 else 0.0)
 
 
 func _toggle_swim() -> void:
@@ -2233,7 +2500,7 @@ func _leave_water(t, quiet: bool) -> void:
 func _simulate_swim(dt: float, ix: float, iy: float) -> void:
 	var up := 1.0 if Input.is_physical_key_pressed(KEY_SPACE) or (hud.touch != null and hud.touch.up) else 0.0
 	var down := 1.0 if Input.is_physical_key_pressed(KEY_SHIFT) or (hud.touch != null and hud.touch.down) else 0.0
-	var spd := SWIM_SPEED * (1.0 + 0.05 * _lv("swim"))
+	var spd := SWIM_SPEED * (1.0 + 0.05 * _lv("swim")) * (1.4 if inv["flippers"] > 0 else 1.0)
 	var mag := Vector2(ix, iy).length()
 	swim.moving = mag > 0.08
 	var mv := Vector3.ZERO
@@ -2312,7 +2579,7 @@ func _tap_debris(d: Dictionary, pw: Vector3) -> void:
 		d["claimed"] = true
 		d["claim_sent"] = true
 		net.event({"a": "claim", "id": d.nid})
-	hook = {"d": d, "phase": "out", "t": 0.0, "dur": 0.18 + dist * 0.025}
+	hook = {"d": d, "phase": "out", "t": 0.0, "dur": (0.18 + dist * 0.025) / (1.5 if inv["mhook"] > 0 else 1.0)}
 	sfx.play("whoosh")
 	hook_ball.visible = true
 	P["face"] = atan2(d.x - pw.x, d.z - pw.z)
@@ -2433,7 +2700,7 @@ func _process(delta: float) -> void:
 	for o in objs:
 		if o.has("fire") and o.fire.visible:
 			fire_k = maxf(fire_k, clampf(1.0 - pw.distance_to((o.node as Node3D).global_position) / 7.0, 0.0, 1.0))
-	var sailing := not _objs_of("sail").filter(func(x): return x.up).is_empty()
+	var sailing := not _objs_of("sail").filter(func(x): return x.up).is_empty() or _objs_of("engine").any(func(x): return x.on)
 	sfx.set_ambience(0.12 + (clampf(raft_vel.length() / 2.5, 0.0, 1.0) * 0.6 if sailing else 0.0), fire_k * 0.8, dt)
 
 
@@ -2536,15 +2803,47 @@ func _update_hud(c: Dictionary) -> void:
 		hud.nav.text += "\n%s 商船 %d m" % [_arrow_to(tb.x - c.x, tb.y - c.z), roundi(Vector2(tb.x - c.x, tb.y - c.z).length())]
 	for o in objs:
 		match o.kind:
-			"still":
+			"still", "purifier":
+				var spec: Array = STILLS[o.kind]
 				var ready: bool = o.water > 0
 				o.label.modulate = Color("5bc8f0") if ready else Color("f4ecd6")
 				if ready:
-					o.label.text = "淡水 %d/2 · 點我裝水" % o.water
+					o.label.text = "淡水 %d/%d · 點我裝水" % [o.water, spec[1]] + ((" · 柴火 %d 秒" % ceili(o.fuel)) if o.kind == "purifier" and o.fuel > 0.0 else "")
 				elif o.fuel > 0.0:
-					o.label.text = "蒸餾中 %d 秒 · 柴火 %d 秒" % [ceili(20.0 - o.prog), ceili(o.fuel)]
+					o.label.text = "%s中 %d 秒 · 柴火 %d 秒" % ["淨水" if o.kind == "purifier" else "蒸餾", ceili(spec[0] * (1.0 - 0.03 * _lv("water")) - o.prog), ceili(o.fuel)]
 				else:
 					o.label.text = "沒有柴火 · 點我添木板"
+				if o.has("level_node"):
+					o.level_node.position.y = 0.59 + 0.045 * o.water
+			"smelter":
+				o.label.modulate = Color("f0a548") if not o.done.is_empty() else Color("f4ecd6")
+				if not o.done.is_empty():
+					var parts := []
+					for k in o.done:
+						parts.append("%s %d" % [ITEMS[k], o.done[k]])
+					o.label.text = "煉好了：%s · 點我拿" % "、".join(parts)
+				elif not o.slots.is_empty():
+					o.label.text = "熔爐 %d 份 · %d 秒" % [o.slots.size(), ceili(o.slots[0][0])]
+				else:
+					o.label.text = "熔爐 · 點我放金屬礦或沙"
+			"colnet":
+				o.label.modulate = Color("f0a548") if o.count > 0 else Color("f4ecd6")
+				o.label.text = ("收集網 %d/%d · 點我收網" % [o.count, NET_HOLD]) if o.count > 0 else "收集網 · 等漂流物"
+			"fishtrap":
+				o.label.modulate = Color("f0a548") if o.fish > 0 else Color("f4ecd6")
+				o.label.text = ("捕魚籠 %d 條魚 · 點我拉起來" % o.fish) if o.fish > 0 else ("捕魚籠%s" % ((" · 魚餌 %d" % o.bait) if o.bait > 0 else ""))
+			"sprinkler":
+				o.label.modulate = Color("5bc8f0") if o.water > 0 else Color("f4ecd6")
+				o.label.text = ("灑水器 · 淡水 %d/%d" % [o.water, SPRINKLE_HOLD]) if o.water > 0 else "灑水器沒水了 · 點我倒淡水"
+			"anchor":
+				o.label.modulate = Color("f0a548") if o.down else Color("f4ecd6")
+				o.label.text = "已下錨 · 點我起錨" if o.down else "船錨 · 點我下錨"
+			"engine":
+				o.label.modulate = Color("7dff6a") if o.on else Color("f4ecd6")
+				if o.on:
+					o.label.text = "引擎運轉中 · 燃料 %d 秒 · 點我熄火" % ceili(o.fuel)
+				else:
+					o.label.text = "引擎 · 燃料 %d 秒 · 點我加木板發動" % ceili(o.fuel)
 			"catcher":
 				var wet: bool = o.water > 0
 				o.label.modulate = Color("5bc8f0") if wet else Color("f4ecd6")
@@ -2561,7 +2860,7 @@ func _update_hud(c: Dictionary) -> void:
 				var full: bool = o.water > 0
 				o.label.modulate = Color("5bc8f0") if full else Color("f4ecd6")
 				o.label.text = ("淡水 %d/3 · 點我裝水" % o.water) if full else ("過濾中 %d 秒" % ceili(30.0 * (1.0 - 0.03 * _lv("water")) - o.prog))
-			"grill":
+			"grill", "bgrill":
 				o.label.modulate = Color("f0a548") if not o.done.is_empty() else Color("f4ecd6")
 				if not o.done.is_empty():
 					o.label.text = "烤好了 · 點我拿"
@@ -2572,7 +2871,8 @@ func _update_hud(c: Dictionary) -> void:
 
 	if steer != null:
 		var up := not _objs_of("sail").filter(func(x): return x.up).is_empty()
-		var txt := "掌舵中 · " + _k("A / D", "搖桿左右") + " 轉向 · 航速 %.1f m/s%s" % [speed, "" if up else "（帆沒升）"]
+		var eng_on := _objs_of("engine").any(func(x): return x.on)
+		var txt := "掌舵中 · " + _k("A / D", "搖桿左右") + " 轉向 · 航速 %.1f m/s%s" % [speed, "（引擎）" if eng_on and not up else ("" if up or eng_on else "（帆沒升）")]
 		if txt != _steer_text:
 			_steer_text = txt
 			hud.show_build_bar(txt, "離開船舵", "steer_done")
@@ -2679,23 +2979,27 @@ func _simulate(dt: float, c: Dictionary) -> void:
 			if (ox * flow.x + oz * flow.y) / flow_len > 48.0 or Vector2(ox, oz).length() > 85.0:
 				_remove_debris(d)
 				continue
+			if not client and _net_catch(d):
+				_remove_debris(d)
+				continue
 		d.node.position = Vector3(d.x, ocean.height(d.x, d.z) + 0.06, d.z)
 		d.node.rotation.y += d.spin * dt
 
 	farm.update(dt, sdt)
 	for o in objs:
 		match o.kind:
-			"still":
+			"still", "purifier":
+				var spec: Array = STILLS[o.kind]
 				if sdt <= 0.0:
 					pass
-				elif o.fuel > 0.0 and o.water < 2:
+				elif o.fuel > 0.0 and o.water < spec[1]:
 					o.fuel = maxf(0.0, o.fuel - dt)
 					o.prog += dt
-					if o.prog >= 20.0 * (1.0 - 0.03 * _lv("water")):
+					if o.prog >= spec[0] * (1.0 - 0.03 * _lv("water")):
 						o.prog = 0.0
 						o.water += 1
 						if o.water == 1:
-							hud.toast("蒸餾杯有一杯淡水了")
+							hud.toast("%s有一杯淡水了" % OBJ_NAME[o.kind])
 				elif o.fuel > 0.0:
 					o.fuel = maxf(0.0, o.fuel - dt * 0.25)
 				o.fire.visible = o.fuel > 0.0
@@ -2707,7 +3011,66 @@ func _simulate(dt: float, c: Dictionary) -> void:
 					if o.prog >= 30.0 * (1.0 - 0.03 * _lv("water")):
 						o.prog = 0.0
 						o.water += 1
-			"grill":
+			"smelter":
+				for sl in o.slots:
+					sl[0] -= sdt
+				while not o.slots.is_empty() and o.slots[0][0] <= 0.0:
+					var raw: String = o.slots.pop_front()[1]
+					var out: String = SMELT[raw][0]
+					o.done[out] = int(o.done.get(out, 0)) + 1
+					if o.slots.is_empty():
+						hud.toast("熔爐煉好了，去拿%s" % ITEMS[out])
+				o.fire.visible = not o.slots.is_empty()
+				if o.fire.visible:
+					o.fire.scale = Vector3(1, 0.8 + sin(wall_t * 15.0) * 0.2, 1)
+				o.bars.visible = not o.done.is_empty()
+			"colnet":
+				var cn: Node3D = o.catch
+				for i in cn.get_child_count():
+					cn.get_child(i).visible = i < ceili(o.count * cn.get_child_count() / float(NET_HOLD))
+			"fishtrap":
+				if o.fish < TRAP_HOLD and sdt > 0.0:
+					o.prog += sdt * (2.0 if o.bait > 0 else 1.0)
+					if o.prog >= TRAP_SEC:
+						o.prog = 0.0
+						o.fish += 1
+						if o.bait > 0:
+							o.bait -= 1
+				for i in o.fishes.size():
+					o.fishes[i].visible = i < o.fish
+			"sprinkler":
+				o.level_node.visible = o.water > 0
+				o.level_node.position.y = 0.47 + 0.065 * o.water
+				o.prog = maxf(0.0, o.prog - dt)
+				if o.water > 0 and sdt > 0.0:
+					for t in objs:
+						if t.kind != "field" or t.moist > 0.25 or o.water <= 0:
+							continue
+						var dc: Vector2i = t.tile.cell - o.tile.cell
+						if maxi(absi(dc.x), absi(dc.y)) > 2 or not t.spots.any(func(sp): return sp.crop != "" and not sp.dead):
+							continue
+						t.moist = 1.0
+						t.dry = 0.0
+						o.water -= 1
+						o.prog = 2.0
+						if o.water == 0:
+							hud.toast("灑水器的水用完了")
+				o.spray.visible = o.prog > 0.0
+				if o.spray.visible or o.water > 0:
+					o.head.rotation.y += dt * (9.0 if o.spray.visible else 0.6)
+					o.spray.rotation.y = o.head.rotation.y
+			"anchor":
+				o.hook.position.y = lerpf(o.hook.position.y, -4.2 if o.down else 0.08, minf(1.0, dt * 2.5))
+				o.line.visible = o.hook.position.y < -0.2
+				if o.line.visible:
+					o.line.scale.y = 0.55 - o.hook.position.y
+					o.line.position.y = (0.55 + o.hook.position.y + 0.7) * 0.5
+			"engine":
+				o.lamp.visible = o.on
+				if o.on:
+					o.prop.rotation.z += dt * 30.0
+					o.node.position.y = 0.07 + sin(wall_t * 40.0) * 0.006
+			"grill", "bgrill":
 				for sl in o.slots:
 					sl[0] -= sdt
 				while not o.slots.is_empty() and o.slots[0][0] <= 0.0:
@@ -2775,15 +3138,29 @@ func _simulate(dt: float, c: Dictionary) -> void:
 func _sail(dt: float, c: Dictionary) -> void:
 	wind = ocean.wind + sin(game_t * 0.011) * 0.35 + sin(game_t * 0.027) * 0.15
 	var up := _objs_of("sail").filter(func(x): return x.up).size()
-	var dir_ang := heading if not _objs_of("helm").is_empty() else wind
+	var eng := 0
+	for o in _objs_of("engine"):
+		if o.on:
+			o.fuel = maxf(0.0, o.fuel - dt)
+			if o.fuel <= 0.0:
+				o.on = false
+				hud.toast("引擎沒燃料，熄火了（點它加木板）")
+			else:
+				eng += 1
+	var anchored := _objs_of("anchor").any(func(x): return x.down)
+	var dir_ang := heading if not _objs_of("helm").is_empty() or eng > 0 else wind
 	var target := 0.0
+	var props := objs.size() - up
+	var mass := maxf(0.45, 1.15 - tiles.size() * 0.025 - props * 0.02)
 	if up > 0:
 		var rel := cos(dir_ang - wind)
 		var wind_f := (0.3 + 0.7 * maxf(0.0, rel)) if rel > -0.25 else 0.08
-		var props := objs.size() - up
-		var mass := maxf(0.45, 1.15 - tiles.size() * 0.025 - props * 0.02)
 		target = minf(3.8, 2.3 * sqrt(up)) * maxf(wind_f, companions.upwind()) * mass * companions.pull()
-	raft_vel = raft_vel.lerp(Vector2(cos(dir_ang), sin(dir_ang)) * target, minf(1.0, dt * 0.5))
+	if eng > 0:
+		target = minf(4.6, target + 1.8 * mini(eng, 2) * maxf(0.7, mass))
+	if anchored:
+		target = 0.0
+	raft_vel = raft_vel.lerp(Vector2(cos(dir_ang), sin(dir_ang)) * target, minf(1.0, dt * (1.2 if anchored else 0.5)))
 	raft_pos += raft_vel * dt
 	var speed := raft_vel.length()
 	for isl in islands:
@@ -2836,7 +3213,7 @@ func _update_hook(dt: float, pw: Vector3, im: ImmediateMesh) -> void:
 	else:
 		var to := Vector2(pw.x - d.x, pw.z - d.z)
 		var dist := to.length()
-		var step := minf(dist, 8.0 * (1.0 + 0.05 * _lv("hook")) * dt)
+		var step := minf(dist, 8.0 * (1.0 + 0.05 * _lv("hook")) * (1.5 if inv["mhook"] > 0 else 1.0) * dt)
 		d.x += to.x / dist * step
 		d.z += to.y / dist * step
 		hook_ball.position = dp
@@ -3433,7 +3810,7 @@ func _obj_entry(o: Dictionary) -> Dictionary:
 	if Farm.is_farm(o.kind):
 		farm.save_state(o, e)
 	else:
-		for k in ["fuel", "water", "prog", "done", "up"]:
+		for k in ["fuel", "water", "prog", "done", "up", "store", "count", "fish", "bait", "on", "down"]:
 			if o.has(k):
 				e[k] = o[k]
 	if o.has("slots"):
@@ -3452,7 +3829,18 @@ func _apply_obj(o: Dictionary, e: Dictionary) -> void:
 		o["water"] = int(e.water)
 	if e.has("up"):
 		o["up"] = bool(e.up)
-	if o.kind == "grill":
+	for k in ["count", "fish", "bait"]:
+		if e.has(k) and o.has(k):
+			o[k] = int(e[k])
+	for k in ["on", "down"]:
+		if e.has(k) and o.has(k):
+			o[k] = bool(e[k])
+	if e.has("store") and o.has("store") and typeof(e.store) == TYPE_DICTIONARY:
+		o["store"] = {}
+		for k in e.store:
+			if ITEMS.has(k) and int(e.store[k]) > 0:
+				o.store[k] = int(e.store[k])
+	if o.kind in ["grill", "bgrill", "smelter"]:
 		var dn = e.get("done", {})
 		o["done"] = {"cooked": int(dn)} if typeof(dn) != TYPE_DICTIONARY else {}
 		if typeof(dn) == TYPE_DICTIONARY:

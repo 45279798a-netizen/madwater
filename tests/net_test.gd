@@ -93,6 +93,20 @@ func _ready() -> void:
 	cli.sea[Vector2i(3, 0)].obj.planted = true
 	cli.net.flush()
 	_ok(await _wait_for(func(): return host.sea[Vector2i(3, 0)].obj.planted, 2.0), "friend planted the kelp (host sees it)")
+	host._place("colnet", host._add_sea(Vector2i(4, 0)))
+	host.sea[Vector2i(4, 0)].obj.store = {"wood": 4, "plastic": 1}
+	host.sea[Vector2i(4, 0)].obj.count = 3
+	_ok(await _wait_for(func(): return cli.sea.has(Vector2i(4, 0)) and int(cli.sea[Vector2i(4, 0)].obj.store.get("wood", 0)) == 4, 2.0), "host's collection net and its catch show up for the friend")
+	cli.inv["wood"] = 0
+	cli._tap_colnet(cli.sea[Vector2i(4, 0)].obj, cli.raft.to_global(Vector3(3.2 * Models.TILE, 0, 0)))
+	cli.net.flush()
+	_ok(cli.inv["wood"] == 4 and await _wait_for(func(): return host.sea[Vector2i(4, 0)].obj.store.is_empty(), 2.0), "friend emptied the net (host's net is empty too)")
+	host._place("engine", host.tiles[Vector2i(2, 0)] if host.tiles[Vector2i(2, 0)].obj == null else host.tiles[Vector2i(-1, 0)])
+	var eng: Dictionary = host._objs_of("engine")[0]
+	eng.fuel = 120.0
+	eng.on = true
+	_ok(await _wait_for(func(): return not cli._objs_of("engine").is_empty() and cli._objs_of("engine")[0].on, 2.0), "friend sees the engine running")
+	eng.on = false
 
 	print("shelter")
 	var key := ""

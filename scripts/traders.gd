@@ -24,7 +24,7 @@ const BOATS := {
 	"water": {
 		"name": "水商「藍桶」", "first": 360.0, "every": 420.0,
 		"buys": {"water": 4, "tjuice": 5, "mjuice": 7, "milk": 6},
-		"sells": [["cup", 1, 5], ["clay", 3, 6], ["sand", 3, 4], ["plastic", 3, 5]],
+		"sells": [["cup", 1, 5], ["clay", 3, 6], ["sand", 3, 4], ["plastic", 3, 5], ["ingot", 2, 9]],
 		"hidden": [["goggles", 1, 15]],
 		"hello": "水商「藍桶」的船靠過來了：「淡水我全收！」",
 	},
