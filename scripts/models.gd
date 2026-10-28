@@ -32,13 +32,30 @@ static func tex(name: String) -> Texture2D:
 ## metal, cloth, soil, stone, sand, grass, plastic. Projected along three axes, so it works on boxes,
 ## spheres and hand-made meshes without UVs; rep = repeats per metre. uv = use the mesh's own UVs
 ## instead (cylinders: u around, v along), rep then being repeats across them.
+static var _all_tmats: Array = []
+static var bumps := true          ## graphics setting: bump (normal) maps on textured materials
+
+
+## Graphics setting: turn the bump maps of every textured material on or off.
+static func set_bumps(on: bool) -> void:
+	bumps = on
+	var alive := []
+	for w in _all_tmats:
+		var m = (w as WeakRef).get_ref()
+		if m != null:
+			(m as StandardMaterial3D).normal_enabled = on
+			alive.append(w)
+	_all_tmats = alive
+
+
 static func tmat(c: Color, fam: String, rough := 0.88, rep := 1.0, bump := 1.0, uv := false, metal := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
+	_all_tmats.append(weakref(m))
 	m.albedo_color = Color(c.r * 1.25, c.g * 1.25, c.b * 1.25, c.a)
 	m.albedo_texture = tex(fam)
 	m.roughness = rough
 	m.metallic = metal
-	m.normal_enabled = true
+	m.normal_enabled = bumps
 	m.normal_texture = tex(fam + "_n")
 	m.normal_scale = bump
 	if uv:
@@ -70,7 +87,7 @@ static func log_mat(c: Color, length: float) -> StandardMaterial3D:
 ## material, placed in root's own space: dozens of little parts become a few draw calls (phones care).
 ## A part with meta "vc" (Color) has that colour written into its vertices (pair it with a material
 ## that uses vertex colour), so differently tinted pieces can still share one material.
-static func bake(root: Node3D, keep: Array = []) -> void:
+static func bake(root: Node3D, keep: Array = [], shadows := true) -> void:
 	var groups := {}
 	var order := []
 	for mi in root.find_children("*", "MeshInstance3D", true, false):
@@ -140,6 +157,8 @@ static func bake(root: Node3D, keep: Array = []) -> void:
 		var out := MeshInstance3D.new()
 		out.mesh = am
 		out.material_override = m
+		if not shadows:
+			out.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(out)
 
 
@@ -279,7 +298,7 @@ static func raft_tile(parent: Node3D, i: int, j: int) -> Array:
 		var wx := rng.randf_range(-1.0, 1.0)
 		for k in 3:
 			part(parent, box(0.07, 0.02, 0.4), wm, Vector3(wx + k * 0.06, -0.22 - k * 0.03, side * (TILE / 2.0 + 0.12)), Vector3(side * 0.9, k * 0.4, 0))
-	bake(parent)
+	bake(parent, [], false)   # the deck's own shadow on the sea isn't worth a second draw of every log
 	return mats
 
 
@@ -319,6 +338,8 @@ static func debris(type: String) -> Node3D:
 				part(b, cyl(0.06, 0.12, 0.12, 10), jug, Vector3(0.04, 0.47, 0))
 				part(b, cyl(0.065, 0.065, 0.06, 10), cap, Vector3(0.04, 0.56, 0))
 				var tor := TorusMesh.new()
+				tor.rings = 14
+				tor.ring_segments = 6
 				tor.inner_radius = 0.07
 				tor.outer_radius = 0.1
 				part(b, tor, jug, Vector3(-0.12, 0.32, 0), Vector3(PI / 2, 0, 0))
@@ -368,6 +389,7 @@ static func debris(type: String) -> Node3D:
 				part(br, cyl(0.43 - absf(y) * 0.14, 0.43 - absf(y) * 0.14, 0.04, 18), metal, Vector3(0, y, 0))
 			part(br, cyl(0.37, 0.37, 0.02, 18), tm(woods[look].darkened(0.2), "planks", 0.9, 2.0), Vector3(0, 0.49, 0))
 			part(br, cyl(0.05, 0.05, 0.03, 8), metal, Vector3(0.2, 0.5, 0))
+	bake(g, [], false)
 	return g
 
 
@@ -399,6 +421,8 @@ static func still() -> Dictionary:
 	_rod(g, Vector3(0.0, 0.98, 0.0), Vector3(0.28, 1.05, 0.2), 0.022, cu)
 	_rod(g, Vector3(0.28, 1.05, 0.2), Vector3(0.52, 0.58, 0.36), 0.022, cu)
 	var tor := TorusMesh.new()
+	tor.rings = 14
+	tor.ring_segments = 6
 	tor.inner_radius = 0.06
 	tor.outer_radius = 0.085
 	for k in 3:
@@ -411,6 +435,7 @@ static func still() -> Dictionary:
 	for f in [Vector3(0, 0, 0.36), Vector3(0.12, 0.08, 0.26), Vector3(-0.11, -0.07, 0.28), Vector3(0.02, -0.14, 0.22)]:
 		part(fire, cyl(0.0, 0.1, f.z, 7), fire_mat(), Vector3(f.x, f.z / 2.0, f.y))
 	fire.visible = false
+	bake(g, [fire])
 	return {"node": g, "fire": fire}
 
 
@@ -461,6 +486,7 @@ static func grill() -> Dictionary:
 		m.visible = false
 		part(m, prism(0.5, 0.9, 0.2), mat(Color("6f8a99")), Vector3(1.05, 0, 0), Vector3(0, 0, PI / 2))   # tail
 		fishes.append(m)
+	bake(g, [fire] + fishes)
 	return {"node": g, "fire": fire, "fishes": fishes}
 
 
@@ -521,6 +547,8 @@ static func sail() -> Dictionary:
 	flag.cull_mode = BaseMaterial3D.CULL_DISABLED
 	part(rig, prism(0.55, 0.22, 0.01), flag, Vector3(0.28, 3.52, 0), Vector3(0, 0, -PI / 2))
 	part(g, sphere(0.06, 8), tm(Color("6a4a2a"), "planks", 0.9, 2.0), Vector3(0, 3.52, 0))
+	bake(g, [rig])
+	bake(rig, [cloth])
 	return {"node": g, "rig": rig, "cloth": cloth}
 
 
@@ -539,12 +567,16 @@ static func helm() -> Dictionary:
 	wheel.position = Vector3(0, 1.08, 0.16)
 	g.add_child(wheel)
 	var tor := TorusMesh.new()
+	tor.rings = 14
+	tor.ring_segments = 6
 	tor.inner_radius = 0.3
 	tor.outer_radius = 0.37
 	tor.rings = 28
 	tor.ring_segments = 8
 	part(wheel, tor, dark, Vector3.ZERO, Vector3(PI / 2, 0, 0))
 	var tor2 := TorusMesh.new()
+	tor2.rings = 14
+	tor2.ring_segments = 6
 	tor2.inner_radius = 0.1
 	tor2.outer_radius = 0.14
 	part(wheel, tor2, dark, Vector3.ZERO, Vector3(PI / 2, 0, 0))
@@ -554,6 +586,8 @@ static func helm() -> Dictionary:
 		part(wheel, cyl(0.018, 0.024, 0.5, 6), dark, Vector3(cos(a) * 0.22, sin(a) * 0.22, 0), Vector3(0, 0, a - PI / 2))
 		var hnd := part(wheel, cyl(0.025, 0.035, 0.16, 8), wood, Vector3(cos(a) * 0.45, sin(a) * 0.45, 0), Vector3(0, 0, a - PI / 2))
 		hnd.name = "H%d" % k
+	bake(g, [wheel])
+	bake(wheel)
 	return {"node": g, "wheel": wheel}
 
 
@@ -815,11 +849,18 @@ static func island(r: float) -> Dictionary:
 	part(crate, box(0.94, 0.08, 0.74), band, Vector3(0, 0.18, 0))
 	part(crate, box(0.94, 0.08, 0.74), band, Vector3(0, -0.2, 0))
 	nodes.append({"kind": "crate", "node": crate, "used": false, "hit": Vector3.ZERO})
+	bake(crate)
 	var keep := [crate]
 	for nd in nodes:
 		if nd.kind == "tree":
 			keep.append(nd.node)
+			bake(nd.nuts)
 	bake(g, keep)
+	# bushes, tufts, shells and the like only need drawing up close
+	for mi in g.get_children():
+		if mi is MeshInstance3D and (mi as MeshInstance3D).material_override != ground_m and (mi as MeshInstance3D).material_override != rock and (mi as MeshInstance3D).material_override != rock2:
+			(mi as MeshInstance3D).visibility_range_end = 80.0
+			(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	return {"node": g, "nodes": nodes}
 
 
@@ -848,9 +889,12 @@ static func chest() -> Dictionary:
 	part(g, box(0.1, 0.1, 0.05), mat(Color("c9a24a"), 0.35, 0.8), Vector3(0, 0.47, 0.39))
 	for sx in [-1.0, 1.0]:
 		var tor := TorusMesh.new()
+		tor.rings = 14
+		tor.ring_segments = 6
 		tor.inner_radius = 0.05
 		tor.outer_radius = 0.07
 		part(g, tor, metal, Vector3(sx * 0.6, 0.45, 0), Vector3(0, 0, PI / 2))
+	bake(g)
 	return {"node": g}
 
 
@@ -879,6 +923,7 @@ static func sand_mound(rng: RandomNumberGenerator) -> Node3D:
 		part(g, sphere(0.38 + rng.randf() * 0.2, 9), m, Vector3(cos(a) * 0.3, 0.02, sin(a) * 0.3), Vector3.ZERO, Vector3(1.3, 0.35, 1.1))
 	var shell := mat(Color("f1e6dc"), 0.5)
 	part(g, prism(0.14, 0.08, 0.1), shell, Vector3(0.1, 0.16, -0.12), Vector3(0, rng.randf() * TAU, 0.3))
+	bake(g, [], false)
 	return g
 
 
@@ -890,6 +935,7 @@ static func clay_lump(rng: RandomNumberGenerator) -> Node3D:
 		var a := rng.randf() * TAU
 		part(g, sphere(0.22 + rng.randf() * 0.18, 8), m if k % 2 == 0 else m2,
 			Vector3(cos(a) * 0.28, 0.08, sin(a) * 0.28), Vector3.ZERO, Vector3(1.2, 0.6, 1.0))
+	bake(g, [], false)
 	return g
 
 
@@ -903,6 +949,7 @@ static func ore_rock(rng: RandomNumberGenerator) -> Node3D:
 	for k in 4:
 		var a := rng.randf() * TAU
 		part(g, box(0.16, 0.1, 0.12), vein, Vector3(cos(a) * 0.45, 0.3 + rng.randf() * 0.2, sin(a) * 0.4), Vector3(rng.randf(), a, rng.randf()))
+	bake(g, [], false)
 	return g
 
 
@@ -923,6 +970,7 @@ static func seaweed(rng: RandomNumberGenerator) -> Node3D:
 			if k % 2 == 1:
 				part(g, sphere(0.05, 6), m, Vector3(ox + sin(k * 0.8 + s_i) * 0.1 + 0.1, y + 0.5, oz))   # gas bladders
 			y += 0.5
+	bake(g, [], false)
 	return g
 
 
@@ -956,6 +1004,7 @@ static func coral(rng: RandomNumberGenerator) -> Node3D:
 				var r := rng.randf_range(0.07, 0.13)
 				part(g, cyl(r, r * 0.8, h, 9), m, Vector3(cos(a) * 0.18, h / 2.0, sin(a) * 0.18), Vector3(cos(a) * 0.15, 0, sin(a) * 0.15))
 				part(g, cyl(r * 0.7, r * 0.7, 0.02, 9), mat(c.darkened(0.6), 0.9), Vector3(cos(a) * 0.18 + cos(a) * 0.15 * h * 0.5, h + 0.005, sin(a) * 0.18))
+	bake(g, [], false)
 	return g
 
 
@@ -1021,6 +1070,7 @@ static func filter() -> Dictionary:
 	part(g, cyl(0.33, 0.33, 0.06, 14), mat(Color("8c4a30")), Vector3(0, 1.18, 0))
 	part(g, cyl(0.025, 0.025, 0.15, 6), clay, Vector3(0, 0.55, 0))
 	part(g, cyl(0.1, 0.08, 0.18, 8), mat(Color("eaf6fb")), Vector3(0, 0.1, 0))
+	bake(g)
 	return {"node": g}
 
 
@@ -1041,6 +1091,7 @@ static func rain_catcher() -> Dictionary:
 	part(g, cyl(0.24, 0.24, 0.55, 16), tm(Color("2b7bc0"), "plastic", 0.45, 2.0), Vector3(0, 0.3, 0))
 	var level := part(g, cyl(0.22, 0.22, 0.02, 14), mat(Color("8fd0ef"), 0.1), Vector3(0, 0.05, 0))
 	level.name = "Level"
+	bake(g, [level])
 	return {"node": g, "level_node": level}
 
 
@@ -1067,6 +1118,7 @@ static func field_tile() -> Dictionary:
 		var x := -0.45 + (i % 2) * 0.9
 		var z := -0.45 + floorf(i / 2.0) * 0.9
 		part(g, cyl(0.2, 0.22, 0.04, 10), mat(Color("4e3526"), 1.0), Vector3(x, 0.19, z))
+	bake(g, [soil])
 	_edges_node(g)
 	return {"node": g}
 
@@ -1119,6 +1171,8 @@ static func kelp_tile() -> Dictionary:
 	for i in 9:
 		var lx: float = lines[i % 3] * TILE / 2.0
 		part(tips, box(0.28, 0.015, 0.1), km, Vector3(lx + 0.12, 0.09, -h + 0.5 + floorf(i / 3.0) * (2.0 * h - 1.0) / 2.0), Vector3(0, i * 1.1, 0))
+	bake(kelp, [], false)
+	bake(g, [kelp, tips])
 	tips.visible = false
 	_edges_node(g)
 	return {"node": g}
@@ -1134,6 +1188,7 @@ static func coop_tile() -> Dictionary:
 	for i in 3:
 		var e := part(eggs, sphere(0.045, 7), mat(Color("f3e6cf")), Vector3(0.54 + i * 0.06, 0.2, -0.6 + (i % 2) * 0.05), Vector3.ZERO, Vector3(1, 1.25, 1))
 		e.visible = false
+	bake(g, [eggs])
 	_edges_node(g)
 	return {"node": g}
 
@@ -1143,6 +1198,7 @@ static func pen_tile() -> Dictionary:
 	part(g, box(1.86, 0.03, 1.86), tm(Color("b8a466"), "thatch", 1.0, 1.5, 0.8), Vector3(0, 0.08, 0))
 	part(g, box(0.36, 0.12, 0.18), mat(Color("7a5232")), Vector3(-0.6, 0.14, -0.62))
 	part(g, box(0.3, 0.04, 0.12), mat(Color("5a7a2c"), 0.9), Vector3(-0.6, 0.21, -0.62))
+	bake(g)
 	_edges_node(g)
 	return {"node": g}
 
@@ -1155,6 +1211,7 @@ static func hen_house() -> Node3D:
 	part(g, box(0.9, 0.45, 0.7), wood, Vector3(0, 0.25, 0))
 	part(g, box(0.26, 0.3, 0.02), mat(Color("2c1d12")), Vector3(0, 0.17, 0.36))
 	part(g, prism(1.05, 0.35, 0.85), tm(Color("d6b86a"), "thatch", 1.0, 2.0), Vector3(0, 0.65, 0))
+	bake(g)
 	return g
 
 
@@ -1192,6 +1249,8 @@ static func farm_edges(tile_node: Node3D, kind: String, open: Array) -> void:
 					part(e, box(0.06, hgt, 0.06), wood, at + (Vector3(t, hgt / 2.0, 0) if along_x else Vector3(0, hgt / 2.0, t)))
 				for y in ([0.18, 0.38] if kind == "coop" else [0.3, 0.62]):
 					part(e, box(1.9 if along_x else 0.04, 0.05, 0.04 if along_x else 1.9), wood, at + Vector3(0, y, 0))
+	bake(e, [], false)
+
 
 static func set_crop(plant: Node3D, crop: String, grow: float, dead: bool) -> void:
 	for c in plant.get_children():
@@ -1227,6 +1286,7 @@ static func set_crop(plant: Node3D, crop: String, grow: float, dead: bool) -> vo
 			if ripe or grow > 0.5:
 				var s := 0.12 + 0.16 * clampf((grow - 0.5) * 2.0, 0.0, 1.0)
 				part(plant, sphere(s, 12), mat(Color("3b7a2e"), 0.6), Vector3(0.08, s * 0.8, 0.05), Vector3.ZERO, Vector3(1.15, 0.95, 1.0))
+	bake(plant, [], false)
 
 
 static func chicken() -> Node3D:
@@ -1239,6 +1299,7 @@ static func chicken() -> Node3D:
 	part(g, box(0.1, 0.06, 0.12), white, Vector3(0, 0.26, -0.2), Vector3(0.6, 0, 0))
 	for x in [-0.05, 0.05]:
 		part(g, cyl(0.012, 0.012, 0.12, 4), mat(Color("e8a23a")), Vector3(x, 0.06, 0))
+	bake(g)
 	return g
 
 
@@ -1258,6 +1319,7 @@ static func goat() -> Node3D:
 		part(head, sphere(0.02, 5), mat(Color("111111")), Vector3(0.1, 0.04, z * 1.4))
 	part(head, box(0.05, 0.12, 0.05), fur, Vector3(0.14, -0.14, 0))
 	part(g, box(0.08, 0.1, 0.06), fur, Vector3(-0.4, 0.72, 0), Vector3(0, 0, 0.8))
+	bake(g)
 	return g
 
 
@@ -1625,6 +1687,7 @@ static func trade_boat(kind: String) -> Node3D:
 			g.add_child(gt)
 			_barrel(g, Vector3(1.0, dy, -0.4), mat(Color("8a5a33")), mat(Color("3a4148"), 0.5, 0.6), 0.5, 0.2)
 			_skipper(g, Vector3(-0.7, dy, -0.5), Color("3e7d4a"), true)
+	bake(g)
 	return g
 
 
@@ -2184,6 +2247,7 @@ static func fishing_net() -> Node3D:
 				_rod(g, pts[i][j], pts[i][j + 1], 0.008, m)
 	_rod(g, pts[6][3], Vector3(0.9, 0.5, 0.3), 0.01, m)
 	part(g, sphere(0.07, 8), mat(Color("e3b23c"), 0.5), Vector3(0.95, 0.52, 0.32))
+	bake(g, [], false)
 	return g
 
 

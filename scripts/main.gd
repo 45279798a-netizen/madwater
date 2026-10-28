@@ -143,6 +143,7 @@ var swim = null
 var seabed_nodes: Array = []
 var seaweeds: Array = []
 var seabed_mat: ShaderMaterial
+var seabed_root: Node3D        ## everything on the sea floor: hidden while the camera is above the (opaque) sea
 var uw_overlay: ColorRect
 var wreck_node: Dictionary = {}
 var cam_yaw := 0.7
@@ -236,8 +237,10 @@ func _setup_world() -> void:
 	var sky := Sky.new()
 	sky.sky_material = sky_mat.mat
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
+	# ambient light from a colour the day / night code sets, not from the sky: otherwise the sky's
+	# radiance map is re-rendered every frame (the clouds move), which phones cannot afford
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.fog_enabled = true
 	env.fog_density = 0.0045
@@ -295,6 +298,8 @@ func _setup_actors() -> void:
 	hook_line.material_override = lm
 	add_child(hook_line)
 	var torus := TorusMesh.new()
+	torus.rings = 14
+	torus.ring_segments = 6
 	torus.inner_radius = HOOK_RANGE - 0.08
 	torus.outer_radius = HOOK_RANGE
 	torus.rings = 96
@@ -345,6 +350,8 @@ func seabed_h(x: float, z: float) -> float:
 
 
 func _setup_seabed() -> void:
+	seabed_root = Node3D.new()
+	add_child(seabed_root)
 	seabed_mat = ShaderMaterial.new()
 	seabed_mat.shader = load("res://shaders/seabed.gdshader")
 	for isl in islands:
@@ -352,8 +359,8 @@ func _setup_seabed() -> void:
 		mi.mesh = _seabed_patch(isl)
 		mi.material_override = seabed_mat
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mi)
-	Models.part(self, Models.box(1400, 1, 1400), Models.mat(Color("23343a"), 1.0), Vector3(1, SEA_FLOOR - 0.6, 1))
+		seabed_root.add_child(mi)
+	Models.part(seabed_root, Models.box(1400, 1, 1400), Models.mat(Color("23343a"), 1.0), Vector3(1, SEA_FLOOR - 0.6, 1)).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for isl in islands:
@@ -380,7 +387,7 @@ func _setup_seabed() -> void:
 					node = Models.ore_rock(rng)
 			node.position = Vector3(x, h, z)
 			node.rotation.y = rng.randf() * TAU
-			add_child(node)
+			seabed_root.add_child(node)
 			seabed_nodes.append({"kind": kind, "node": node, "pos": Vector3(x, h, z), "cd": 0.0})
 		for k in 24:
 			var a := rng.randf() * TAU
@@ -390,7 +397,7 @@ func _setup_seabed() -> void:
 			var w := Models.seaweed(rng) if k % 3 != 0 else Models.coral(rng)
 			w.position = Vector3(x, seabed_h(x, z), z)
 			w.rotation.y = rng.randf() * TAU
-			add_child(w)
+			seabed_root.add_child(w)
 			if k % 3 != 0:
 				seaweeds.append([w, rng.randf() * TAU])
 				seabed_nodes.append({"kind": "kelp", "node": w, "pos": w.position, "cd": 0.0})
@@ -399,7 +406,7 @@ func _setup_seabed() -> void:
 	drng.seed = 12
 	for isl in islands:
 		var reef := Node3D.new()
-		add_child(reef)
+		seabed_root.add_child(reef)
 		var base2: float = isl.r * 1.75
 		for k in (10 if OS.has_feature("web") else 18):
 			var a := drng.randf() * TAU
@@ -410,7 +417,7 @@ func _setup_seabed() -> void:
 			bit.position = Vector3(x, seabed_h(x, z), z)
 			bit.rotation.y = drng.randf() * TAU
 			reef.add_child(bit)
-		Models.bake(reef)
+		Models.bake(reef, [], false)
 	# a sunken boat off the second island
 	var isl2: Dictionary = islands[1]
 	var wa := 2.0
@@ -421,7 +428,7 @@ func _setup_seabed() -> void:
 	var wn: Node3D = wm.node
 	wn.position = Vector3(wx, seabed_h(wx, wz) - 0.2, wz)
 	wn.rotation.y = wa + 1.3
-	add_child(wn)
+	seabed_root.add_child(wn)
 	var chest: Node3D = wm.chest
 	wreck_node = {"kind": "wreck", "node": chest, "pos": chest.global_position, "used": false}
 	seabed_nodes.append(wreck_node)
@@ -2453,9 +2460,9 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	shade = shade.lerp(Color("4a5260") * (0.3 + 0.7 * b), weather.cloud * 0.8)
 	# moonlight: the night keeps a cool ambient so the raft never vanishes
 	var nk := clampf(1.0 - b * 1.6, 0.0, 1.0)
-	env.ambient_light_color = Color(0.16, 0.2, 0.32)
-	env.ambient_light_sky_contribution = 1.0 - 0.6 * nk
-	env.ambient_light_energy = 1.0 + 1.2 * nk
+	var amb := sky_mat.sky_top_color.lerp(sky_mat.sky_horizon_color, 0.55).lerp(Color(0.16, 0.2, 0.32), nk * 0.6)
+	env.ambient_light_color = amb
+	env.ambient_light_energy = 0.75 + 1.4 * nk
 	sky_mat.set_clouds(0.46 + 0.5 * weather.cloud, weather.storm, lit, shade, clampf(1.0 - b * 1.6, 0.0, 1.0), wall_t)
 	var hours := fmod(6.0 + phase * 24.0, 24.0)
 	var hh := int(hours)
@@ -2473,6 +2480,7 @@ func _update_sky_and_camera(dt: float, pw: Vector3) -> void:
 	cam.global_position = cp
 	cam.look_at(cam_target, Vector3.UP)
 	var cam_under := cp.y < ocean.height(cp.x, cp.z) - 0.05
+	seabed_root.visible = cam_under or swim != null
 	if cam_under:
 		var clear: bool = inv["goggles"] > 0
 		env.fog_density = 0.035 if clear else 0.12

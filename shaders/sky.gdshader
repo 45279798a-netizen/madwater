@@ -18,6 +18,7 @@ uniform float drift = 0.0;                              // seconds the wind has 
 uniform vec2 wind_dir = vec2(1.0, 0.35);
 uniform float night = 0.0;                              // 1 = full night: stars come out
 uniform int octaves = 5;                                // fewer on phones
+uniform int quality = 2;                                // 0 flat puffs, 1 + warped shapes, 2 + sun-side lighting
 
 float hash(vec2 p) {
 	p = fract(p * vec2(123.34, 456.21));
@@ -89,13 +90,13 @@ void sky() {
 		} else {
 			// project the view ray onto a flat cloud layer high overhead
 			vec2 p = d.xz / (y + 0.045) * 0.55 + wind_dir * drift * 0.0035;
-			vec2 q = vec2(fbm(p * 0.55, 3), fbm(p * 0.55 + vec2(5.2, 1.3), 3));
+			vec2 q = quality >= 1 ? vec2(fbm(p * 0.55, 3), fbm(p * 0.55 + vec2(5.2, 1.3), 3)) : vec2(0.3);
 			float n = fbm(p + q * 1.1, octaves);
 			float th = mix(0.6, 0.33, cover);
 			float dens = smoothstep(th, th + 0.2, n);
 			// light from the sun's side: compare with the density a little toward the sun
 			vec2 toward = normalize(sun.xz + vec2(0.0001)) * 0.09;
-			float n2 = fbm(p + q * 1.1 + toward, octaves);
+			float n2 = quality >= 2 ? fbm(p + q * 1.1 + toward, octaves) : n - 0.04;
 			float lit = clamp(0.6 + (n - n2) * 4.0, 0.0, 1.0);
 			vec3 ccol = mix(cloud_shade, cloud_lit, lit);
 			ccol *= mix(1.0, 0.62 - storm * 0.2, smoothstep(th + 0.12, th + 0.42, n) * (0.35 + storm * 0.65));

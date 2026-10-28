@@ -26,6 +26,7 @@ var ground_bottom_color := Color("0b2a40"):
 func _init() -> void:
 	mat.shader = load("res://shaders/sky.gdshader")
 	mat.set_shader_parameter("octaves", 4 if OS.has_feature("web") or Hud.is_touch() else 5)
+	mat.set_shader_parameter("quality", 1 if OS.has_feature("web") or Hud.is_touch() else 2)
 
 
 ## Cloud look for this moment: cover 0..1, storm 0..1, lit / shade colours, night 0..1, drift seconds.

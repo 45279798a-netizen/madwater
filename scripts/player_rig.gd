@@ -94,6 +94,16 @@ func _init() -> void:
 	bubbles.position = Vector3(0, 0.85, 0.18)
 	bubbles.emitting = false
 	torso.add_child(bubbles)
+	# merge each body part's pieces (one joint = a few meshes): far fewer draw calls per castaway
+	Models.bake(head)
+	Models.bake(torso, [head, arm_l.sh, arm_r.sh])
+	for a in [arm_l, arm_r]:
+		Models.bake(a.sh, [a.el])
+		Models.bake(a.el)
+	for l in [leg_l, leg_r]:
+		Models.bake(l.hip, [l.knee])
+		Models.bake(l.knee)
+	Models.bake(hips, [torso, leg_l.hip, leg_r.hip])
 
 
 ## Friends' castaways wear their own shirt colour.
