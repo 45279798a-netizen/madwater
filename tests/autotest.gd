@@ -170,6 +170,12 @@ func _process(_d: float) -> void:
 			game.shark.timer = 999.0
 			game.inv["plastic"] = 10; game.inv["rope"] = 6
 			game._on_action("craft")
+			check("craft list is grouped by stage", game.hud.sheet_list.get_child_count() == game.CRAFT.size() + game.STAGES.size())
+			game._on_recipe("goggles")
+			check("goggles locked in stage 1", game.inv["goggles"] == 0 and game._stage() == 0)
+			game.S["drank"] = 1
+			game._refresh_goals()
+			check("first drink unlocks stage 2", game._stage() == 1 and game.S["stage"] == 1)
 			game._on_recipe("goggles")
 			check("crafted goggles", game.inv["goggles"] == 1)
 			game._close_sheet()
@@ -686,6 +692,12 @@ func _process(_d: float) -> void:
 			game._tap_smelter(sm, pw())
 			check("took the bars", game.inv["ingot"] == 3 and game.inv["glass"] == 1 and game.S["smelted"] == 4 and sm.done.is_empty())
 			game.inv["ingot"] = 40; game.inv["glass"] = 10; game.inv["wood"] = 99
+			game._on_action("craft")
+			game._on_recipe("mhook")
+			check("metal hook locked before stage 4", game.inv["mhook"] == 0)
+			game._close_sheet()
+			game.S["drank"] = 1; game.S["dug"] = 1
+			check("an ingot reaches the metal age", game._stage() == 3)
 			game._on_action("craft")
 			for r in ["mhook", "canteen", "flippers", "o2tank", "mspear"]:
 				game._on_recipe(r)

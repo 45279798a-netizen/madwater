@@ -108,6 +108,8 @@ func _ready() -> void:
 	_ok(await _wait_for(func(): return not cli._objs_of("engine").is_empty() and cli._objs_of("engine")[0].on, 2.0), "friend sees the engine running")
 	eng.on = false
 
+	host.S["drank"] = 1; host.S["islands"] = 1
+	_ok(await _wait_for(func(): return cli._stage() == 2, 3.0), "friend builds at the host's stage (%d)" % cli._stage())
 	print("shelter")
 	var key := ""
 	for c in host.tiles:

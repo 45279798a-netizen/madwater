@@ -85,6 +85,21 @@ const BUILD := [
 	{"id": "anchor", "name": "船錨", "desc": "點它下錨，木筏停在原地不漂走（漂流物還是會漂過來）", "cost": {"ingot": 3, "rope": 4}},
 	{"id": "engine", "name": "引擎", "desc": "燒木板推船，不管風向都能照船舵的方向前進；點它發動 / 熄火", "cost": {"ingot": 6, "plastic": 4, "rope": 2, "wood": 4}},
 ]
+## Stages (like a tech tree): each unlocks a batch of recipes. [name, what unlocks it, what it brings]
+const STAGES := [
+	["漂流求生", "", "繩子、杯子、工具、地板、蒸餾杯、烤架、小屋"],
+	["木筏家園", "喝下第一杯蒸餾出來的淡水", "潛水鏡、船帆、船舵、二樓、集雨布"],
+	["探索海洋", "潛到海底挖到資源，或登上第一座小島", "種田、養殖、海洋夥伴、濾水缸、捕魚籠、熔爐"],
+	["金屬時代", "拿到第一塊金屬錠（熔爐煉，或跟商船買）", "金屬工具、收集網、淨水器、灑水器、船錨、引擎"],
+]
+## Which stage each craft / build recipe belongs to (missing = stage 0).
+const TIER := {
+	"goggles": 1, "upper": 1, "stairs": 1, "rail": 1, "sail": 1, "helm": 1, "catcher": 1,
+	"flippers": 2, "tjuice": 2, "mjuice": 2, "bag40": 2, "field": 2, "kelpfarm": 2, "coop": 2, "pen": 2, "filter": 2,
+	"gullnest": 2, "dolphinpost": 2, "turtletank": 2, "fishtrap": 2, "smelter": 2,
+	"mspear": 3, "mhook": 3, "canteen": 3, "o2tank": 3, "bag50": 3,
+	"colnet": 3, "purifier": 3, "bgrill": 3, "sprinkler": 3, "anchor": 3, "engine": 3,
+}
 const SEA_KINDS := ["kelpfarm", "colnet", "fishtrap"]   ## built on the water beside the raft, not on the deck
 const OBJ_NAME := {"still": "蒸餾杯", "grill": "烤架", "sail": "船帆", "helm": "船舵", "chest": "儲物箱", "filter": "陶瓷濾水缸", "field": "菜田", "kelpfarm": "海藻養殖架", "coop": "雞舍", "pen": "山羊圍欄", "stairs": "樓梯", "catcher": "集雨布", "gullnest": "海鷗巢", "dolphinpost": "海豚韁繩柱", "turtletank": "海龜水槽",
 	"smelter": "熔爐", "colnet": "收集網", "fishtrap": "捕魚籠", "purifier": "進階淨水器", "bgrill": "金屬烤架", "sprinkler": "灑水器", "anchor": "船錨", "engine": "引擎",
@@ -217,6 +232,7 @@ var wake_t := 0.0
 var build_mode := ""
 var sheet_mode := ""
 var goals_done := 0
+var _host_stage := 0       ## a friend's game: the host's stage (friends build in the same world)
 var _drag := {}
 var _touches := {}       ## finger index -> {start, pos, t, moved, multi}
 var _pinch := 0.0
@@ -1192,7 +1208,51 @@ func _goals() -> Array:
 	]
 
 
+## The highest stage reached (never goes back down).
+func _stage() -> int:
+	if creative:
+		return STAGES.size() - 1
+	var now := 0
+	if S["drank"] >= 1:
+		now = 1
+		if S["dug"] >= 1 or S["islands"] >= 1:
+			now = 2
+			if S["smelted"] >= 1 or inv["ingot"] > 0:
+				now = 3
+	return maxi(maxi(now, int(S.get("stage", 0))), _host_stage if is_client() else 0)
+
+
+func _unlocked(id: String) -> bool:
+	return int(TIER.get(id, 0)) <= _stage()
+
+
+func _stage_rows(recipes: Array, make_row: Callable) -> Array:
+	var rows := []
+	var st := _stage()
+	for si in STAGES.size():
+		var open: bool = si <= st
+		var sd: Array = STAGES[si]
+		rows.append({"header": true, "id": "", "name": "階段 %d · %s%s" % [si + 1, sd[0], "" if open else "（未解鎖）"],
+			"desc": ("解鎖條件：" + sd[1]) if not open else "", "cost_text": "", "ok": open, "label": ""})
+		for r in recipes:
+			if int(TIER.get(r.id, 0)) != si:
+				continue
+			var row: Dictionary = make_row.call(r)
+			if not open:
+				row["ok"] = false
+				row["label"] = "未解鎖"
+				row["dim"] = true
+			rows.append(row)
+	return rows
+
+
 func _refresh_goals() -> void:
+	var stg := _stage()
+	if stg > int(S.get("stage", 0)):
+		S["stage"] = stg
+		if not paused and not creative:
+			hud.toast("解鎖階段 %d「%s」！新東西：%s" % [stg + 1, STAGES[stg][0], STAGES[stg][2]])
+			sfx.play("catch", null, -4.0, 0.0)
 	var g := _goals()
 	var done := 0
 	var cur = null
@@ -1213,7 +1273,7 @@ func _refresh_goals() -> void:
 		hud.goal_now.text = "核心循環完成，繼續撐下去吧"
 		hud.goal_sub.text = "已存活 %d 天" % (int(game_t / DAY_LEN) + 1)
 	else:
-		hud.goal_eyebrow.text = "目標 %d / %d" % [done + 1, g.size()]
+		hud.goal_eyebrow.text = "目標 %d / %d · 階段 %d %s" % [done + 1, g.size(), _stage() + 1, STAGES[_stage()][0]]
 		hud.goal_now.text = cur[0]
 		hud.goal_sub.text = cur[1]
 
@@ -1222,12 +1282,12 @@ func _open_sheet(mode: String) -> void:
 	sheet_mode = mode
 	var rows := []
 	if mode == "craft":
-		for r in CRAFT:
+		rows = _stage_rows(CRAFT, func(r):
 			var owned: bool = (r.get("once", false) and inv[r.id] > 0) or (r.has("bag") and int(S["bag"]) >= r.bag)
 			var locked: bool = (r.get("bag", 0) == 40 and (S["islands"] < 2 or int(S["bag"]) < 30)) or (r.get("bag", 0) == 50 and int(S["bag"]) < 40)
-			rows.append({"id": r.id, "name": r.name, "desc": r.desc, "cost_text": _cost_text(r.cost),
+			return {"id": r.id, "name": r.name, "desc": r.desc, "cost_text": _cost_text(r.cost),
 				"ok": _has(r.cost) and not owned and not locked, "label": "已擁有" if owned else ("未解鎖" if locked else "合成")})
-		hud.show_sheet("合成", rows)
+		hud.show_sheet("合成（階段 %d / %d）" % [_stage() + 1, STAGES.size()], rows)
 	elif mode == "trade":
 		if traders.boat == null:
 			return
@@ -1283,12 +1343,11 @@ func _open_sheet(mode: String) -> void:
 			rows.append({"id": "", "name": "還沒有夥伴", "desc": "第一座小島上空的海鷗、第二座小島外的海豚、沉船旁被漁網纏住的海龜，都可以收服", "cost_text": "", "ok": false, "label": ""})
 		hud.show_sheet("海洋夥伴", rows)
 	else:
-		for r in BUILD:
-			var cost := _build_cost(r.cost)
-			rows.append({"id": r.id, "name": r.name, "desc": r.desc, "cost_text": _cost_text(cost),
-				"ok": _has(cost), "label": "放置"})
 		rows.append({"id": "demolish", "name": "拆除", "desc": "拆掉設備或地板，退回一半材料", "cost_text": "", "ok": true, "label": "拆除"})
-		hud.show_sheet("建造", rows)
+		rows += _stage_rows(BUILD, func(r):
+			var cost := _build_cost(r.cost)
+			return {"id": r.id, "name": r.name, "desc": r.desc, "cost_text": _cost_text(cost), "ok": _has(cost), "label": "放置"})
+		hud.show_sheet("建造（階段 %d / %d）" % [_stage() + 1, STAGES.size()], rows)
 
 
 func _close_sheet() -> void:
@@ -1436,6 +1495,9 @@ func _on_recipe(id: String) -> void:
 	if sheet_mode == "smelt":
 		if has_meta("smelting") and id.begins_with("smelt_"):
 			_smelt(get_meta("smelting"), id.substr(6))
+		return
+	if not _unlocked(id):
+		hud.toast("還沒解鎖：要先到階段 %d「%s」（%s）" % [int(TIER[id]) + 1, STAGES[int(TIER[id])][0], STAGES[int(TIER[id])][1]])
 		return
 	if sheet_mode == "craft":
 		for r in CRAFT:
@@ -3790,6 +3852,7 @@ func net_begin_client(cfg: Dictionary) -> void:
 	debris.clear()
 	game_t = float(cfg.get("game_t", 0.0))
 	_nt_have = false
+	_host_stage = 0
 	_mp_menu = false
 	hud.hide_menu()
 	paused = false
@@ -3889,6 +3952,7 @@ func world_entities() -> Dictionary:
 	e["sb"] = sb
 	e["tr"] = traders.net_state()
 	e["pe"] = _quant(companions.save_state())
+	e["st"] = _stage()
 	return e
 
 
@@ -3984,6 +4048,8 @@ func apply_entities(e: Dictionary, full: bool) -> void:
 		traders.net_load(e.tr)
 	if e.has("pe") and typeof(e.pe) == TYPE_DICTIONARY:
 		companions.net_load(e.pe)
+	if e.has("st") and is_client():
+		_host_stage = int(e.st)
 	_after_shelter_change()
 	if build_mode != "":
 		_refresh_ghosts()

@@ -333,12 +333,32 @@ func show_sheet(title: String, rows: Array) -> void:
 		sheet_list.remove_child(c)
 		c.queue_free()
 	for r in rows:
+		if r.get("header", false):
+			# a stage heading: a coloured line, then what unlocks it (if still locked)
+			var hb := VBoxContainer.new()
+			hb.add_theme_constant_override("separation", 2)
+			sheet_list.add_child(hb)
+			var gap := Control.new()
+			gap.custom_minimum_size.y = 4
+			hb.add_child(gap)
+			_label(hb, r.name, 16, BUOY if r.ok else DIM)
+			if r.desc != "":
+				var hd := _label(hb, r.desc, 13, Color("ef9b5b"))
+				hd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				hd.custom_minimum_size.x = 300
+			var line := ColorRect.new()
+			line.custom_minimum_size = Vector2(0, 2)
+			line.color = Color(BUOY, 0.5) if r.ok else Color(DIM, 0.35)
+			hb.add_child(line)
+			continue
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		sheet_list.add_child(row)
 		var col := VBoxContainer.new()
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(col)
+		if r.get("dim", false):
+			row.modulate = Color(1, 1, 1, 0.55)
 		_label(col, r.name, 17, INK)
 		var d := _label(col, r.desc, 13, DIM)
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
